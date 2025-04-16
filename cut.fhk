@@ -1,0 +1,17 @@
+model tree {
+	default'mark = 0
+	default'thin_mark = 0
+}
+
+model stratum_tree {
+	default'thin_mark = 0
+}
+
+# metsi thinning models
+model site {
+	cc_d0 = call Lua ["metsi.thinlimit":"cc_d0"] (mty, sdom)
+	cc_a0 = call Lua ["metsi.thinlimit":"cc_a0"] (mty, sdom)
+	th_g0 = call Lua ["metsi.thinlimit":"th_g0"] (alr, mty, sdom, hdom)
+	th_g1 = call Lua ["metsi.thinlimit":"th_g1"] (alr, mty, sdom, hdom)
+	fth_f1 = call Lua ["metsi.thinlimit":"fth_f1"] (mty, sdom)
+}

@@ -1,0 +1,262 @@
+# TODO:
+model site {
+	jd = 0
+	jh = 0
+	h100'over = 0
+	h100'retention = 0
+	h100'grow = 0
+	oji = 0
+	ojik = 0
+	sty = 0
+	rimp = false
+	pdr = false
+}
+
+model site {
+	default't_redrain = 0
+	default't_drain = 0
+	default't_thin = 0
+	default't_fert = 0
+}
+
+# TODO:
+model tree {
+	storie = 0
+	snt = 0
+}
+
+# ---- Mineral soils -----------------------------------------------------------
+
+model tree where site.alr = ~alr'mineralsoil {
+
+	ig5 = call Lua["metsi.ig":"ig5_figu"] (
+		s,
+		d,
+		h,
+		rdfL,
+		rdfL'[s=~spe'pine],
+		rdfL'[s=~spe'spruce],
+		rdfL'deciduous,
+		cr,
+		crkor,
+		snt,
+		site.mty,
+		site.mal,
+		site.dd,
+		site.rdf,
+		site.rdf'[s=~spe'pine],
+		site.rdf'[s=~spe'spruce],
+		site.rdf'deciduous,
+		site.jd
+	) where d>0
+
+	id5 = (100*2/~pi^0.5) * ((g+ig5)^0.5 - g^0.5)
+
+	ih5 = call Lua["metsi.ih":"ih5_fihu"] (
+		s,
+		d,
+		h,
+		rdfL,
+		rdfL'[s=~spe'pine],
+		rdfL'[s=~spe'spruce],
+		cr,
+		crkor,
+		ig5,
+		site.mty,
+		site.mal,
+		site.dd,
+		site.hdomj,
+		site.jd
+	) where d>0
+
+	sp5'comp = call Lua["metsi.death":"jsdeath"] (s, d+id5, rdfL2)
+
+}
+
+# ---- Peatlands ---------------------------------------------------------------
+
+model tree where site.alr > ~alr'mineralsoil {
+
+	id5 = call Lua["metsi.id":"id5_suo_manty"] (
+		d,
+		h,
+		storie,
+		baL,
+		site.hdom,
+		site.h100'over,
+		site.h100'retention,
+		site.G,
+		site.dd,
+		site.mal,
+		site.oji,
+		site.tkg,
+		site.sty,
+		site.rimp,
+		site.pdr,
+		site.since't_redrain,
+		site.since't_drain,
+		site.since't_thin
+	) where s=~spe'pine and d>0
+
+	id5 = call Lua["metsi.id":"id5_suo_kuusi"] (
+		d,
+		h,
+		storie,
+		baL'[s=~spe'spruce],
+		site.hdom,
+		site.h100'over,
+		site.h100'retention,
+		site.G,
+		site.dd,
+		site.Z,
+		site.mal,
+		site.oji,
+		site.tkg,
+		site.since't_redrain,
+		site.since't_drain,
+		site.since't_thin
+	) where s=~spe'spruce and d>0
+
+	id5 = call Lua["metsi.id":"id5_suo_koivu"] (
+		d,
+		h,
+		storie,
+		baL'deciduous,
+		site.hdom,
+		site.h100'over,
+		site.h100'retention,
+		site.G,
+		site.dd,
+		site.Z,
+		site.mal,
+		site.oji,
+		site.tkg,
+		site.since't_redrain,
+		site.since't_drain,
+		site.since't_thin,
+		site.since't_fert
+	) where s!=~spe'pine and s!=~spe'spruce and d>0
+
+	ih5 = call Lua["metsi.ih":"ih5a_suo_manty"] (
+		d,
+		h,
+		storie,
+		baL,
+		snt,
+		site.G,
+		site.G'deciduous,
+		site.hdom,
+		site.h100'over,
+		site.h100'retention,
+		site.h100'grow,
+		site.dd,
+		site.mal,
+		site.oji,
+		site.ojik,
+		site.tkg,
+		site.since't_drain
+	) where s=~spe'pine and d>0
+
+	ih5 = call Lua["metsi.ih":"ih5a_suo_kuusi"] (
+		d,
+		h,
+		storie,
+		baL'[s=~spe'spruce],
+		snt,
+		site.G,
+		site.hdom,
+		site.h100'over,
+		site.h100'retention,
+		site.h100'grow,
+		site.dd,
+		site.mal,
+		site.oji,
+		site.tkg,
+		site.since't_redrain,
+		site.since't_drain,
+		site.jh
+	) where s=~spe'spruce and d>0
+
+	ih5 = call Lua["metsi.ih":"ih5a_suo_koivu"] (
+		d,
+		h,
+		storie,
+		baL'deciduous,
+		site.dgdom,
+		site.G,
+		site.G'[s=~spe'pine],
+		site.F,
+		site.hdom,
+		site.h100'over,
+		site.h100'retention,
+		site.h100'grow,
+		site.dd,
+		site.Z,
+		site.mal,
+		site.oji,
+		site.tkg,
+		site.since't_redrain,
+		site.since't_drain,
+		site.since't_thin,
+		site.since't_fert
+	) where s!=~spe'pine and s!=~spe'spruce and d>0
+
+	sp5'comp = call Lua["metsi.death":"jsdeath"] (s, d+id5, rdfL2)
+		where s = ~spe'spruce
+	
+	sp5'comp = call Lua["metsi.death":"pmodel3a_suo_manty"] (
+		d,
+		baL,
+		site.G,
+		site.G'[s=~spe'downy_birch or s=~spe'silver_birch] / site.G,
+		site.dg
+	) where s = ~spe'pine or s = ~spe'xconiferous
+
+	sp5'comp = call Lua["metsi.death":"bmodel3_suo_koivu"] (
+		d,
+		baL,
+		site.G,
+		site.G'[s=~spe'pine] / site.G,
+		site.dd
+	) where s > ~spe'pine
+
+}
+
+# ---- Post-growth step --------------------------------------------------------
+
+model tree {
+	ccf2 = call Lua ["metsi.ccf":"ccf"] (
+		d + id5,
+		f,
+		s,
+		site.mty,
+		site.verlt,
+		site.lake,
+		site.sea,
+		site.Z,
+		site.dd
+	)
+}
+
+model site {
+	tree.rdfL2 = call Lua ["metsi.math":"spsum"] (
+		out[N],
+		tree.order2'{_'{d+id5}, _'{h+ih5}},
+		tree._'{d+id5},
+		tree.ccf2,
+	)
+}
+
+# ---- Small trees -------------------------------------------------------------
+
+# TODO: this logic is from metsi, should port the original model
+model tree where d=0 {
+	ih5 = 0.3
+	id5 = 1 where h+ih5 >= 1.3
+	id5 = 0
+}
+
+# ---- Death -------------------------------------------------------------------
+
+model tree sp5'age = call Lua["metsi.death":"famort"] (s, a13, site.dd)
+model tree sp5 = sp5'comp * sp5'age

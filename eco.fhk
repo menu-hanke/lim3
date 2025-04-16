@@ -1,0 +1,6 @@
+macro var site default'{npv'$_} = 0
+
+# more general version, uncomment if needed
+# table crosscut[site.N, 3]
+# model tree crosscut.cc_V, crosscut.cc_C = call Lua["crosscut":"apt"] (s, d, h)
+model tree cc_C = call Lua["metsi.crosscut":"aptc"](s, d, h)

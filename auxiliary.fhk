@@ -1,0 +1,168 @@
+macro pi 3.14159
+
+# ---- Expressions -------------------------------------------------------------
+
+macro var site         _'$expr = $expr
+macro var tree         _'$expr = $expr
+macro var stratum      _'$expr = $expr
+macro var stratum_tree _'$expr = $expr
+
+# ---- Sorting -----------------------------------------------------------------
+
+macro var tree order2'{$x, $y} {
+	model site $$ = call Lua["metsi.math":"idxhsort"] (tree.$x, tree.$y, out[N])
+}
+
+# ---- Sums --------------------------------------------------------------------
+
+macro var tree sumL'{$expr where $filter} {
+	model site $$ =
+		let idx = which(tree._'{$filter}) in
+		call Lua["metsi.math":"spsum"] (
+			out[N],
+			tree.order2'{d, h},
+			tree.d,
+			tree._'{$expr}[idx],
+			idx
+		)
+}
+
+macro var tree sumL'$expr {
+	model site $$ = call Lua["metsi.math":"spsum"] (
+		out[N],
+		tree.order2'{d, h},
+		tree.d,
+		tree._'{$expr}
+	)
+}
+
+macro var site sumT'{$expr where $filter} = sum(tree._'{$expr}[which(tree._'{$filter})])
+macro var site sumT'$expr = sum(tree._'{$expr})
+macro var site sumS'{$expr where $filter} = sum(stratum._'{$expr}[which(stratum._'{$filter})])
+macro var site sumS'$expr = sum(stratum._'{$expr})
+macro var site sum'$expr = sumT'{$expr} + sumS'{$expr}
+
+# ---- Site-level variables ----------------------------------------------------
+
+model site {
+
+	F = sum'f
+	G = sumT'(f*g) + sumS'g
+	V = sumT'(f*vtot)
+	rdf = sumT'ccf
+
+	dg = sum(tree.f * tree.d^3) / sum(tree.f * tree.d^2)
+	hg = sum(tree.f * tree.h * tree.d^2) / sum(tree.f * tree.d^2)
+	ag = (sum(tree.f * tree.a * tree.g) + sum(stratum.f * stratum.a * stratum.g))
+		/ (sum(tree.f * tree.g) + sum(stratum.f * stratum.g))
+
+	# TODO(fhk): fix indexing in makejumptab...
+	tkg = call Lua ["metsi.site":"tkg"] (mty, alr, 0*mty)
+
+}
+
+macro var site rdf'$filter = sumT'(ccf where $filter)
+macro var site G'$filter = sum'(f*g where $filter)
+macro var site V'$filter = sumT'(f*vtot where $filter)
+
+macro var site since'$expr = year - ($expr)
+
+# ---- Temperature sum and elevation -------------------------------------------
+
+# TODO port models
+model site {
+	default'dd = 1300
+	default'Z = 80
+	lake = 0
+	sea = 0
+}
+
+# ---- Stories -----------------------------------------------------------------
+
+model site {
+	growing_storie = call Lua ["metsi.site":"growst"] (sdom, tree.storie, tree.s)
+}
+
+# ---- Dominant trees ----------------------------------------------------------
+
+model site {
+	sdom = call Lua ["metsi.site":"spedom"] (tree.s, tree.g)
+	hdom = call Lua ["metsi.site":"hdom"] (tree.h, tree.f, tree.order2'{d, h})
+	hdomj = hdom # TODO
+	dgdom = call Lua ["metsi.site":"dgdom"] (growing_storie, sdom, tree.storie, tree.s,
+		tree.d, tree.f)
+
+	# hdomt = call Lua ["metsi.site":"hdom"] (tree.h, tree.g, tree.f, tree.order2'{d, h})
+	# hdom = hdomt where hdomt > 0
+	# # TODO (fhk): implement max and set `hdom = max(stratum.hdom)`
+	# hdom = call Lua ["metsi.math":"vmax"] (stratum.hdom, 0)
+}
+
+# ---- Tree-level variables ----------------------------------------------------
+
+model tree {
+	
+	deciduous = s=~spe'silver_birch or s=~spe'downy_birch
+
+	g = (~pi/4)/10000 * d^2
+
+	a = site.year - t0
+	a13 = site.year - t13
+
+	dk = 2 + 1.25*d
+
+	crkor = 0 # TODO
+
+	cr = call Lua["metsi.cr":"cr"] (
+		s,
+		rdfL,
+		site.mty,
+		site.dd,
+		site.dg,
+		site.hg,
+		site.rdf
+	)
+
+	ccf = call Lua["metsi.ccf":"ccf"] (
+		d,
+		f,
+		s,
+		site.mty,
+		site.verlt,
+		site.lake,
+		site.sea,
+		site.Z,
+		site.dd
+	)
+
+	rdfL = sumL'ccf
+	baL = sumL'(f*g)
+
+	# TODO: update this to return other parts too when fhk supports multiple returns
+	vtot = call Lua["metsi.vol":"vol"] (s, d, h)
+
+}
+
+macro var tree rdfL'$filter = sumL'(ccf where $filter)
+macro var tree baL'$filter = sumL'(f*g where $filter)
+
+# ---- Tree-level variables (stratum trees) ------------------------------------
+
+model stratum_tree {
+
+	s = stratum.s
+	t0 = stratum.t0
+	t13 = t0+10  # TODO how to compute this??
+	g = (~pi/4)/10000 * d^2
+
+}
+
+# ---- Stratum-level variables -------------------------------------------------
+
+model stratum {
+
+	deciduous = s=~spe'silver_birch or s=~spe'downy_birch
+	a = site.year - t0
+	Npros = f / site.F
+
+}

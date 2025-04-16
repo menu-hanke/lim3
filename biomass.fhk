@@ -1,0 +1,43 @@
+# precomputed biomasses for small trees
+model tree where d=0 {
+	bm_stem = h*0.0713665 where s=~spe'pine
+	bm_stem = h*0.0375791 where s=~spe'spruce
+	bm_stem = h*0.0331816
+	bm_bark = h*0.0252702 where s=~spe'pine
+	bm_bark = h*0.0290572 where s=~spe'spruce
+	bm_bark = h*0.018252
+	bm_live_branches = h*0.0171922 where s=~spe'pine
+	bm_live_branches = h*0.0688421 where s=~spe'spruce
+	bm_live_branches = h*0.0339913
+	bm_dead_branches = h*0.0121725 where s=~spe'pine
+	bm_dead_branches = h*0.0115778 where s=~spe'spruce
+	bm_dead_branches = h*0.0022271
+	bm_foliage = h*0.0210926 where s=~spe'pine
+	bm_foliage = h*0.0472377 where s=~spe'spruce
+	bm_foliage = h*0.0007411
+	bm_stump = h*0.00621616 where s=~spe'pine
+	bm_stump = h*0.0376811 where s=~spe'spruce
+	bm_stump = h*0.0524023
+}
+
+# big tree models
+model tree {
+	bm_stem = call Lua ["metsi.biomass":"bm_stem_pine"] (dk, h, a13) where s=~spe'pine
+	bm_stem = call Lua ["metsi.biomass":"bm_stem_spruce"] (dk, h, a13) where s=~spe'spruce
+	bm_stem = call Lua ["metsi.biomass":"bm_stem_birch"] (d, dk, h, a13)
+	bm_bark = call Lua ["metsi.biomass":"bm_bark_pine"] (dk, h) where s=~spe'pine
+	bm_bark = call Lua ["metsi.biomass":"bm_bark_spruce"] (dk, h) where s=~spe'spruce
+	bm_bark = call Lua ["metsi.biomass":"bm_bark_birch"] (dk, h)
+	bm_live_branches = call Lua ["metsi.biomass":"bm_live_branches_pine"] (dk, h, h*cr) where s=~spe'pine
+	bm_live_branches = call Lua ["metsi.biomass":"bm_live_branches_spruce"] (dk, h, h*cr) where s=~spe'spruce
+	bm_live_branches = call Lua ["metsi.biomass":"bm_live_branches_birch"] (dk, h, h*cr)
+	bm_dead_branches = call Lua ["metsi.biomass":"bm_dead_branches_pine"] (dk) where s=~spe'pine
+	bm_dead_branches = call Lua ["metsi.biomass":"bm_dead_branches_spruce"] (dk, h) where s=~spe'spruce
+	bm_dead_branches = call Lua ["metsi.biomass":"bm_dead_branches_birch"] (dk)
+	bm_foliage = call Lua ["metsi.biomass":"bm_foliage_pine"] (dk, h, h*cr) where s=~spe'pine
+	bm_foliage = call Lua ["metsi.biomass":"bm_foliage_spruce"] (dk, h, h*cr) where s=~spe'spruce
+	bm_foliage = call Lua ["metsi.biomass":"bm_foliage_birch"] (dk, cr)
+	bm_stump = call Lua ["metsi.biomass":"bm_stump_pine"] (dk) where s=~spe'pine
+	bm_stump = call Lua ["metsi.biomass":"bm_stump_spruce"] (dk) where s=~spe'spruce
+	bm_stump = call Lua ["metsi.biomass":"bm_stump_birch"] (dk)
+}

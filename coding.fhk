@@ -1,0 +1,25 @@
+macro spe'pine             1
+macro spe'spruce           2
+macro spe'silver_birch     3
+macro spe'downy_birch      4
+macro spe'aspen            5
+macro spe'gray_alder       6
+macro spe'black_alder      7
+macro spe'xconiferous      8
+macro spe'xdeciduous       9
+
+macro alr'mineralsoil      1
+macro alr'peat_spruce      2
+macro alr'peat_pine        3
+macro alr'peat_barren      4
+macro alr'peat_rich        5
+
+macro storie'none          0
+macro storie'lower         1
+macro storie'upper         2
+macro storie'over          3
+macro storie'retention     4
+
+macro kk'cultivated        1
+macro kk'natural           2
+macro kk'infeasible        3

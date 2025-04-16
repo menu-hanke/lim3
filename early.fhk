@@ -1,0 +1,101 @@
+# f : Nos
+# g : Gos
+
+model stratum {
+	default'meas_a = 0/0
+	default'meas_g = 0/0
+	default'meas_f = 0/0
+	default'meas_da = 0/0
+	default'meas_dgm = 0/0
+	default'meas_ha = 0/0
+	default'meas_hgm = 0/0
+	default'meas_hdom = 0/0
+	default'meas_Npros = last_Npros
+	default'last_Npros = 1 # TODO: calculate it here?
+}
+
+# nämä on tässä koska malli menee sekaisin jos a=0
+model stratum where a=0 {
+	g = 0
+	f = meas_f
+	da = 0
+	dgm = 0
+	ha = meas_ha where meas_ha=meas_ha
+	hgm = meas_hgm where meas_hgm=meas_hgm
+	hdom = meas_hdom where meas_hdom=meas_hdom
+}
+
+model stratum {
+
+	b: [:], varb: [:,:] = call R["earlygrowth/wrapper.R":"ranefWrapper"] (
+		s,
+		snt,
+		meas_a,
+		meas_Npros,
+		meas_g,
+		meas_f,
+		meas_da,
+		meas_dgm,
+		meas_ha,
+		meas_hgm,
+		meas_hdom,
+		site.dd,
+		site.mty
+	)
+
+	g, f, da, dgm, ha, hgm, hdom = call R["earlygrowth/wrapper.R":"growWrapper"] (
+		s,
+		snt,
+		a,
+		last_Npros,
+		b,
+		varb,
+		site.dd,
+		site.mty
+	)
+
+}
+
+#-------------------------------------------------------------------------------
+
+table stratum_tree[:, stratum.N]
+
+model site NN = sum(stratum.N)
+
+model stratum {
+
+	draja = 5
+
+	# TODO(fhk): max/min -- min(da, dgm) < draja
+	iso = dgm >= draja and da >= draja
+
+	# TODO(fhk): nimetyt parametrit R:ssä
+	# TODO(fhk): string parametrit (dtype "A"/"B")
+	shape, scale = call R["earlygrowth/wrapper.R":"recweibhWrapper"] (f, ha, hdom, Npros)
+		where not iso
+	shape, scale = call R["earlygrowth/wrapper.R":"recweibdWrapper"] (g, f, dgm, false)
+		where g/(~pi*(dgm/200)^2) < f-50 or g/(~pi*(da/200)^2) < f+50
+	shape, scale = call R["earlygrowth/wrapper.R":"recweibdWrapper"] (g, f, da)
+
+	trees_f: [:], trees_x: [:] = call R["earlygrowth/wrapper.R":"kuvauspuutWrapperPieni"]
+			(shape, scale, f, hdom)
+		where not iso
+	trees_f: [:], trees_x: [:] = call R["earlygrowth/wrapper.R":"kuvauspuutWrapperN"]
+			(shape, scale, f)
+		where hdom < 8
+	trees_f: [:], trees_x: [:] = call R["earlygrowth/wrapper.R":"kuvauspuutWrapperG"]
+		(shape, scale, g)
+
+	N = len(trees_f)
+
+	stratum_tree.f = trees_f
+	stratum_tree.d = trees_x where iso
+	stratum_tree.h = trees_x where not iso
+
+	stratum_tree.d = call R["earlygrowth/wrapper.R":"imputeSmallTreeDBHWrapper"] (stratum_tree.h)
+
+	# TODO: selvitä mitä selittäjiä tässä oikeasti tarvitaan
+	stratum_tree.h = call R["earlygrowth/wrapper.R":"Hpred2Wrapper"]
+		(s, dgm, hgm, stratum_tree.d, site.dd)
+
+}
