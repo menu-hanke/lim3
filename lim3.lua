@@ -39,24 +39,14 @@ local cleantrees = data.transaction():delete("tree", "f<0.1")
 -- TODO: should be global.step
 local setstep = data.transaction():update("site", {step=data.arg()})
 
--- local xdebugstrat = transaction():read({stratum_hdom="stratum.hdom", t0="stratum.t0"})
--- local xdebugtrees0 = transaction():read({f="tree.f", a="tree.a", a13="tree.a13"})
--- local xdebugtrees1 = transaction():read({f="tree.f", t0="tree.t0", a="tree.a", a13="tree.a13"})
-
 local function np(step)
 	cleantrees()
 	setstep(step or 5)
-	-- print("BEFORE")
-	-- pprint(xdebugstrat())
-	-- pprint(xdebugtrees0())
 	grow()
 	if movestrata then
 		-- TODO: this should also be hooked on condition change
-		--pprint(xdebugstrat())
 		movestrata()
 	end
-	-- print("AFTER")
-	-- pprint(xdebugtrees1())
 end
 
 local function define_movestrata(cond)
@@ -170,10 +160,13 @@ local plant_default = {
 }
 
 local function planting(specs)
+	local level = specs.level or "stratum"
 	return data.transaction()
-		:insert("stratum", function(name)
-			local m = name:match("^meas_(%w+)$")
-			if m then name = m end
+		:insert(level, function(name)
+			if level == "stratum" then
+				local m = name:match("^meas_(%w+)$")
+				if m then name = m end
+			end
 			return specs[name] or plant_default[name]
 		end)
 end
