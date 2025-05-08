@@ -1,0 +1,8 @@
+model site {
+	cc_d0 = call Lua ["metsi.tapio":"cc_d0"] (mty, sdom)
+	cc_a0 = call Lua ["metsi.tapio":"cc_a0"] (mty, sdom)
+	th_g0 = call Lua ["metsi.tapio":"th_g0"] (alr, mty, sdom, hdom)
+	th_g1 = call Lua ["metsi.tapio":"th_g1"] (alr, mty, sdom, hdom)
+	fth_f1 = call Lua ["metsi.tapio":"fth_f1"] (mty, sdom)
+	rlv_f: [:] = call Lua ["metsi.tapio":"rlv_f"] (mty) # one entry per species
+}

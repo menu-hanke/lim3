@@ -1,8 +1,8 @@
 data.include "coding.fhk"
 data.include "auxiliary.fhk"
-data.include "cut.fhk"
 data.include "eco.fhk"
 data.include "biomass.fhk"
+data.include "tapio.fhk"
 
 data.define [[
 	table site
@@ -11,6 +11,16 @@ data.define [[
 ]]
 
 ---- Natural processes ---------------------------------------------------------
+
+-- TODO: add if-then-else expression to fhk, then this can be rewritten simply as
+--   t13 = "if h<1.3 then site.year+site.step else t13"
+
+data.define [[
+	model tree {
+		t13_ = site.year+site.step where h<1.3
+		t13_ = t13
+	}
+]]
 
 -- TODO: muuta nämä yhtälöt muotoon x = ix_step, ja laita ix_step = ... kaavat mallikirjastoon
 local grow = data.transaction()
@@ -21,7 +31,8 @@ local grow = data.transaction()
 	:update("tree", {
 		d = "d + id5*site.step/5",
 		h = "h + ih5*site.step/5",
-		f = "f * sp5^(site.step/5)"
+		f = "f * sp5^(site.step/5)",
+		t13 = "t13_"
 	})
 	:update("stratum", {
 		last_Npros = "Npros"
@@ -58,6 +69,12 @@ local function define_movestrata(cond)
 end
 
 ---- Cutting -------------------------------------------------------------------
+
+data.define [[
+	model tree default'mark = 0
+	model tree default'thin_mark = 0
+	model stratum_tree default'thin_mark = 0
+]]
 
 local thin, cut
 
@@ -151,19 +168,39 @@ end
 ---- Planting ------------------------------------------------------------------
 
 local plant_default = {
-	t0  = "[site.year]",
-	snt = "[3]"
+	stratum = {
+		t0  = "site.year",
+		snt = 3
+	},
+	tree = {
+		t0  = "site.year",
+		t13 = "site.year",
+		snt = 3,
+		d   = 0
+	}
 }
 
-local function planting(specs)
-	local level = specs.level or "stratum"
+local function planting(specs, N, level)
+	level = level or "stratum"
 	return data.transaction()
 		:insert(level, function(name)
 			if level == "stratum" then
 				local m = name:match("^meas_(%w+)$")
 				if m then name = m end
 			end
-			return specs[name] or plant_default[name]
+			if specs[name] then
+				return specs[name]
+			end
+			if name == "f" and specs.s then
+				-- TODO (fhk): uncomment this when indexing arbitrary expressions is supported
+				-- local expr = string.format("(site.rlv_f)[%s-1]", specs.spe)
+				local expr = string.format([[call Lua ["metsi.tapio":"rlv_f"] (site.mty, %s) ]], specs.s)
+				if N then
+					expr = string.format("%s/%s", expr, N)
+				end
+				return expr
+			end
+			return plant_default[level][name]
 		end)
 end
 

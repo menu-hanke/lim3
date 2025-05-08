@@ -1,4 +1,4 @@
--- Models copied from metsi (https://github.com/lukefi/metsi)
+-- Tapio silvicultural recommendation tables.
 
 local coding = require "metsi.coding"
 local pine, spruce, silver_birch, downy_birch, aspen, gray_alder, black_alder, xconiferous, xdeciduous
@@ -6,6 +6,7 @@ local pine, spruce, silver_birch, downy_birch, aspen, gray_alder, black_alder, x
 local OMaT, OMT, MT, VT, CT, ClT, ROCK, MTN = coding.mty.OMaT, coding.mty.OMT, coding.mty.MT,
 	coding.mty.VT, coding.mty.CT, coding.mty.ClT, coding.mty.ROCK, coding.mty.MTN
 local inf = math.huge
+local type = type
 
 ---- Cutting models common -----------------------------------------------------
 
@@ -228,6 +229,31 @@ local function fth_f1(mty, sdom)
 	return FF1[mty][sdom] or inf
 end
 
+---- Cultivated stems ----------------------------------------------------------
+
+local RLV = xtab({
+	OMT = { pine=2400, spruce=2000, silver_birch=1600, downy_birch=1600 },
+	MT  = { pine=2200, spruce=1800, silver_birch=1600, downy_birch=1600 },
+	VT  = { pine=2200, spruce=1600, silver_birch=1600, downy_birch=1600 },
+	CT  = { pine=2000, spruce=1600, silver_birch=1600, downy_birch=1600 }
+}, kmty4, kspe4)
+
+-- TODO: use the same vectorized lookup logic elsewhere too
+local function rlv_f(mty, spe)
+	if type(spe) == "number" then
+		return RLV[mty][spe]
+	elseif type(spe) == "cdata" then
+		-- TODO: allow using out parameter
+		local ret = {}
+		for i=0, #spe-1 do
+			ret[i+1] = RLV[mty][spe]
+		end
+		return ret
+	else
+		return RLV[mty]
+	end
+end
+
 --------------------------------------------------------------------------------
 
 return {
@@ -235,5 +261,6 @@ return {
 	cc_a0  = cc_a0,
 	th_g0  = th_g0,
 	th_g1  = th_g1,
-	fth_f1 = fth_f1
+	fth_f1 = fth_f1,
+	rlv_f  = rlv_f
 }
