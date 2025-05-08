@@ -85,7 +85,7 @@ end
 
 data.define [[
 	model site RC_now = sum(tree.mark*tree.vtot)
-	model site income_now = sum(tree.mark*tree.cc_C)
+	model site income_now = sum(tree.mark*tree.value)
 ]]
 
 local function getcut()

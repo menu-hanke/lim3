@@ -1,4 +1,5 @@
-local abs, floor, log, min, pi = math.abs, math.floor, math.log, math.min, math.pi
+local abs, floor, log, max, min, pi = math.abs, math.floor, math.log, math.max, math.min, math.pi
+local bor, lshift, tobit = bit.bor, bit.lshift, bit.tobit
 
 local crkpk = {
 	{
@@ -288,11 +289,24 @@ local function apt(spe, d, h, div)
 	return vol, val
 end
 
-local function aptc(s, d, h)
+local function aptval(s, d, h)
 	local _, val = apt(s, d, h, 10)
 	return val[1] + val[2] + val[3]
 end
 
+-- key: (h << 16) | (d << 8) | s
+local valcache = {}
+local function val(s, d, h)
+	local key = bor(lshift(h, 16), lshift(d, 8), s)
+	local v = valcache[key]
+	if not v then
+		v = aptval(s, max(tobit(d), 1), max(tobit(h), 1))
+		valcache[key] = v
+	end
+	-- TODO: if we want to get fancy, we could interpolate here
+	return v
+end
+
 return {
-	aptc = aptc
+	val = val
 }
