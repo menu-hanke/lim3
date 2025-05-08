@@ -249,11 +249,39 @@ model site {
 
 # ---- Small trees -------------------------------------------------------------
 
-# TODO: this logic is from metsi, should port the original model
-model tree where d=0 {
-	ih5 = 0.3
-	id5 = 1 where h+ih5 >= 1.3
-	id5 = 0
+model tree {
+
+	ih5 = call Lua ["metsi.ih":"hincu"] (
+		s,
+		a,
+		h,
+		snt,
+		site.mty,
+		site.dd,
+		site.G
+	) where d=0
+
+	id5 = 0 where d=0 and h+ih5 < 1.3
+	id5 = call Lua ["metsi.id":"id5small"] (
+		s,
+		h,
+		ih5,
+		rdfL,
+		rdfL'[s=~spe'pine],
+		rdfL'[s=~spe'spruce],
+		rdfL'deciduous,
+		cr,
+		crkor,
+		snt,
+		site.mty,
+		site.mal,
+		site.dd,
+		site.rdf,
+		site.rdf'[s=~spe'pine],
+		site.rdf'[s=~spe'spruce],
+		site.rdf'deciduous,
+		site.jd
+	) where d=0
 }
 
 # ---- Death -------------------------------------------------------------------

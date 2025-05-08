@@ -427,6 +427,7 @@ end
 local function hincu(
 	spe, age, h, snt,
 	mty, dd, G, step)
+	step = step or 5
 	local t = agekri(spe, mty, snt, dd, 0, 0, h)
 	local hi = hvalta(spe, t+step, mty, snt, dd, 0) - hvalta(spe, max(t, 1), mty, snt, dd, 0)
 	if hi <= 0 then

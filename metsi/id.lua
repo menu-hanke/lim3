@@ -11,6 +11,8 @@ local PsK, PKgK, PsR, KgR, PKR
 	= coding.sty.PsK, coding.sty.PKgK, coding.sty.PsR, coding.sty.KgR, coding.sty.PKR
 local peat = require "metsi.peat"
 local peatc, ojic = peat.peatc, peat.ojic
+local ig = require "metsi.ig"
+local ig5_figu = ig.ig5_figu
 
 local function xhdom100d(hdom100, hdom100_over, hdom100_retention, storie, h)
 	if hdom100 > 0 then return hdom100 end
@@ -110,8 +112,22 @@ local function id5_suo_koivu(
     return max(c * (exp(untr + (0.038+0.014+0.139)/2) - 4) / 10, 0)
 end
 
+local function id5small(spe, h, ih5, rdfl, rdflma, rdflku, rdfl_lehti, cr, crkor, snt,
+	mty, mal, dd, rdf, rdfma, rdfku, rdf_lehti, jd, step)
+	if h + ih5 < 1.3 then
+		return 0
+	end
+	step = step or 5
+	local ig = ig5_figu(spe, h, 0.01, rdfl, rdflma, rdflku, rdfl_lehti, cr, crkor, snt,
+		mty, mal, dd, rdf, rdfma, rdfku, rdf_lehti, jd)
+	local ga = 2
+	local da = g2du(ga)
+	return da + (g2du(ga+ig)-da)*(step/5.0)*(1-(1.3-h)/ih5)
+end
+
 return {
 	id5_suo_manty = id5_suo_manty,
 	id5_suo_kuusi = id5_suo_kuusi,
-	id5_suo_koivu = id5_suo_koivu
+	id5_suo_koivu = id5_suo_koivu,
+	id5small      = id5small
 }
