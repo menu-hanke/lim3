@@ -56,8 +56,7 @@ model site {
 	ag = (sum(tree.f * tree.a * tree.g) + sum(stratum.f * stratum.a * stratum.g))
 		/ (sum(tree.f * tree.g) + sum(stratum.f * stratum.g))
 
-	# TODO(fhk): fix indexing in makejumptab...
-	tkg = call Lua ["metsi.site":"tkg"] (mty, alr, 0*mty)
+	tkg = call Lua ["metsi.site":"tkg"] (mty, alr, 0)
 
 }
 
@@ -138,7 +137,6 @@ model tree {
 	rdfL = sumL'ccf
 	baL = sumL'(f*g)
 
-	# TODO: update this to return other parts too when fhk supports multiple returns
 	vtot = call Lua["metsi.vol":"vol"] (s, d, h)
 
 }
