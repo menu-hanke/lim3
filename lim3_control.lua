@@ -57,28 +57,46 @@ local function setup(settings)
 		end
 	end
 	if settings.nodes then
-		for i,y in ipairs(settings.nodes.years) do periods[i] = y end
+		local tables = {}
+		for k,v in pairs(settings.nodes) do
+			if type(k) == "number" then
+				periods[k] = v
+			else
+				tables[k] = v
+			end
+		end
+		report_node = data.transaction()
 		if settings.output == "console" then
-			report_node = data.transaction():call(console_node, period, settings.nodes.values)
+			report_node:call(console_node, period, tables)
 		else
-			local rep = { id = data.arg(1), parent = prevnode }
-			for k,v in pairs(settings.nodes.values) do rep[k] = v end
-			report_node = data.transaction()
-				:set(prevnode, data.arg(1))
-				:sql_insert(settings.nodes.table, rep)
+			report_node:set(prevnode, data.arg(1))
+			for tab,fs in pairs(tables) do
+				local rep = { id = data.arg(1), parent = prevnode }
+				for k,v in pairs(fs) do rep[k] = v end
+				report_node:sql_insert(tab, rep)
+			end
 		end
 	end
 	if settings.leaves then
-		if settings.leaves.year and (not periods[1] or settings.leaves.year > periods[#periods]) then
-			table.insert(periods, settings.leaves.year)
+		if settings.leaves[1] and (not periods[1] or settings.leaves[1] > periods[#periods]) then
+			table.insert(periods, settings.leaves[1])
 		end
+		local tables = {}
+		for k,v in pairs(settings.leaves) do
+			if type(k) == "string" then
+				tables[k] = v
+			end
+		end
+		report_leaf = data.transaction()
 		if settings.output == "console" then
-			report_leaf = data.transaction():call(console_node, period, settings.leaves.values)
+			report_leaf:call(console_node, period, tables)
 		else
-			local rep = {}
-			if settings.nodes then rep.parent = data.arg(1) end
-			for k,v in pairs(settings.leaves.values) do rep[k] = v end
-			report_leaf = data.transaction():sql_insert(settings.leaves.table, rep)
+			for tab,fs in pairs(tables) do
+				local rep = {}
+				if settings.nodes then rep.parent = data.arg(1) end
+				for k,v in pairs(fs) do rep[k] = v end
+				report_leaf:sql_insert(tab, rep)
+			end
 		end
 	end
 end
