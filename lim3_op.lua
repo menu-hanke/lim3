@@ -100,18 +100,24 @@ local function getthin()
 	return thin
 end
 
-data.define [[
-	model site RC_now = sum(tree.mark*tree.vtot)
-	model site income_now = sum(tree.mark*tree.value)
-]]
+local cut_var = { RC="vtot", income="value" }
 
 local function getcut()
 	if not cut then
 		cut = data.transaction()
-			:update("site", {
-				RC = "RC + RC_now",
-				income = "income + income_now"
-			})
+			:update("site", function(name)
+				local stem, filter = name:match("^([^']*)'?(.*)$")
+				if cut_var[stem] then
+					if filter ~= "" then
+						if filter:sub(1,1) == "{" then
+							filter = filter:sub(2,-2)
+						end
+						return string.format("%s + sumT'{mark*%s where %s}", name, cut_var[stem], filter)
+					else
+						return string.format("%s + sum(tree.mark*tree.%s)", name, cut_var[stem])
+					end
+				end
+			end)
 			:update("tree", {
 				f = "f - mark",
 				mark = "0"
