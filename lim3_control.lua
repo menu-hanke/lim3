@@ -19,7 +19,7 @@ driver = control.dynamic(function()
 	local nextyear = periods[period]
 	if not nextyear then
 		if report_leaf then
-			report_leaf(node)
+			report_leaf(worker_id()*1e9 + node)
 		end
 		return control.nothing
 	elseif year < nextyear then
@@ -28,7 +28,7 @@ driver = control.dynamic(function()
 	else
 		if report_node then
 			node = node+1
-			report_node(node)
+			report_node(worker_id()*1e9 + node)
 		end
 		setperiod(period+1)
 		return driver
