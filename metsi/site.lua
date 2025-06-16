@@ -115,17 +115,17 @@ local function spedom(spe, g)
 	return spemax
 end
 
-local function hdomg(h, g, f, order)
+local function xdomg(x, g, f, order)
 	local rem, HG, G = 100, 0, 0
 	for i=0, #order-1 do
 		local j = order[i]
 		if f[j] >= rem then
-			HG = HG + h[j]*rem*g[j]
+			HG = HG + x[j]*rem*g[j]
 			G = G + rem*g[j]
 			break
 		else
 			rem = rem - f[j]
-			HG = HG + h[j]*f[j]*g[j]
+			HG = HG + x[j]*f[j]*g[j]
 			G = G + f[j]*g[j]
 		end
 	end
@@ -136,17 +136,17 @@ local function hdomg(h, g, f, order)
 	end
 end
 
-local function hdoma(h, f, order)
+local function xdoma(x, f, order)
 	local rem, hw, w = 100, 0, 0
 	for i=0, #order-1 do
 		local j = order[i]
 		if f[j] >= rem then
-			hw = hw + h[j]*rem
+			hw = hw + x[j]*rem
 			w = w + rem
 			break
 		else
 			rem = rem - f[j]
-			hw = hw + h[j]*f[j]
+			hw = hw + x[j]*f[j]
 			w = w + f[j]
 		end
 	end
@@ -246,9 +246,8 @@ return {
 	h100_grow  = h100_grow,
 	dgdom      = dgdom,
 	spedom     = spedom,
-	hdomg      = hdomg,
-	hdoma      = hdoma,
-	hdom       = hdoma,
+	xdomg      = xdomg,
+	xdoma      = xdoma,
 	promote    = promote,
 	growst     = growst,
 	grel_pine  = grel_pine,

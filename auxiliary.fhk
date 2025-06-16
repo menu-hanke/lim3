@@ -61,6 +61,7 @@ model site {
 }
 
 macro var site rdf'$filter = sumT'(ccf where $filter)
+macro var site F'$filter = sumT'(f where $filter)
 macro var site G'$filter = sum'(f*g where $filter)
 macro var site V'$filter = sumT'(f*vtot where $filter)
 
@@ -86,13 +87,11 @@ model site {
 
 model site {
 	sdom = call Lua ["metsi.site":"spedom"] (tree.s, tree.g)
-	hdom = call Lua ["metsi.site":"hdom"] (tree.h, tree.f, tree.order2'{d, h})
+	hdom = call Lua ["metsi.site":"xdoma"] (tree.h, tree.f, tree.order2'{d, h})
+	ddom = call Lua ["metsi.site":"xdoma"] (tree.d, tree.f, tree.order2'{d, h})
 	hdomj = hdom # TODO
 	dgdom = call Lua ["metsi.site":"dgdom"] (growing_storie, sdom, tree.storie, tree.s,
 		tree.d, tree.f)
-
-	# hdomt = call Lua ["metsi.site":"hdom"] (tree.h, tree.g, tree.f, tree.order2'{d, h})
-	# hdom = hdomt where hdomt > 0
 	# # TODO (fhk): implement max and set `hdom = max(stratum.hdom)`
 	# hdom = call Lua ["metsi.math":"vmax"] (stratum.hdom, 0)
 }
