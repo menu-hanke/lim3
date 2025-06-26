@@ -5,13 +5,16 @@ A forest model library for Finland, for use with [m3](https://github.com/menu-ha
 The following models are implemented:
 |Model|Reference|
 |-----|---------|
-|Growth|Based on [1]; [2], [9] |
+|Growth|[1] *, [2], [9], [10]|
 |Mortality|[3]|
-|Early development|Based on [4]|
+|Early development|[4] *|
+|HD curve|[11]|
 |Crown ratio, competition|[1]|
 |Biomass|[5],[6]|
 |Taper curve|[7]|
 |Thinning models|[8]|
+
+\* Implemented model is based on the reference.
 
 References:
 * [1] Hynynen, J., Salminen, H., Ahtikoski, A., Huuskonen, S., Ojansuu, R., Siipilehto, J., Lehtonen, M., Rummukainen, A., Kojola, S. and Eerikäinen, K., 2014. *Scenario analysis for the biomass supply potential and the future development of Finnish forest resources.*|
@@ -19,7 +22,9 @@ References:
 * [3] Hynynen, J., Ojansuu, R., Hökkä, H., Siipilehto, J., Salminen, H. and Haapala, P., 2002. *Models for predicting stand development in MELA system.* Metsäntutkimuslaitos.
 * [4] Siipilehto, J., Valkonen, S., Ojansuu, R., Hynynen, J., Miina, J. and Saksa, T., 2014. *Metsikön varhaiskehityksen kuvaus MOTTI-ohjelmistossa.*
 * [5] Repola, J., 2008. *Biomass equations for birch in Finland.* Silva Fennica, 42(4).
-* [6] Repola, J., 2009. Biomass equations for Scots pine and Norway spruce in Finland. Silva Fennica, 43(4).
+* [6] Repola, J., 2009. *Biomass equations for Scots pine and Norway spruce in Finland.* Silva Fennica, 43(4).
 * [7] Laasasenaho, J., 1982. *Taper curve and volume functions for pine, spruce and birch.* Metsäntutkimuslaitos.
 * [8] Äijälä, O., Koistinen, A., Sved, J., Vanhatalo, K. and Väisänen, P., 2014. *Metsänhoidon suositukset.* Metsätalouden kehittämiskeskus Tapion julkaisuja, 179(0).
 * [9] Nyyssönen A., Mielikäinen K., 1978. *Metsikön kasvun arviointi.* Acta Forestalia Fennica no.163.
+* [10] Pukkala, T., Vauhkonen, J., Korhonen, K.T. and Packalen, T., 2021. *Self-learning growth simulator for modelling forest stand dynamics in changing conditions.* Forestry: An International Journal of Forest Research, 94(3), pp.333-346.
+* [11] Siipilehto, J., 2000. *A comparison of two parameter prediction methods for stand structure in finland.* Silva Fennica, 34(4).

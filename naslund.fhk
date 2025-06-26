@@ -1,0 +1,6 @@
+model tree {
+	h = 0 where d=0
+	h = call Lua ["metsi.naslund":"h_pine"] (d) where pineconif
+	h = call Lua ["metsi.naslund":"h_spruce"] (d) where s=~spe'spruce
+	h = call Lua ["metsi.naslund":"h_birch"] (d)
+}

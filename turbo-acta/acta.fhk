@@ -1,0 +1,81 @@
+model site {
+
+	ag = call C ["./libacta.so":"acta_xg"] (
+		tree.f: double *,
+		tree.a: double *,
+		tree.d: double *,
+		N: int
+	): double
+
+	dg = call C ["./libacta.so":"acta_xg"] (
+		tree.f: double *,
+		tree.d: double *,
+		tree.d: double *,
+		N: int
+	): double
+
+	hg = call C ["./libacta.so":"acta_xg"] (
+		tree.f: double *,
+		tree.h: double *,
+		tree.d: double *,
+		N: int
+	): double
+
+	hdom = call C ["./libacta.so":"acta_hdom"] (
+		tree.f: double *,
+		tree.d: double *,
+		tree.h: double *,
+		N: int
+	): double
+
+	G = call C ["./libacta.so":"acta_G"] (
+		tree.f: double *,
+		tree.d: double *,
+		N: int
+	): double
+
+}
+
+model tree a = site.year - t0
+
+model tree {
+
+	id5p1 = call C ["./libacta.so":"acta_id5p1_pine"] (
+		d: double,
+		h: double,
+		site.ag: double,
+		site.dg: double,
+		site.G: double,
+		site.hdom: double
+	): double where s=1
+
+	id5p1 = call C ["./libacta.so":"acta_id5p1_spruce"] (
+		d: double,
+		h: double,
+		site.ag: double,
+		site.dg: double,
+		site.hg: double,
+		site.G: double
+	): double
+
+	ih5p1 = call C ["./libacta.so":"acta_ih5p1_pine"] (
+		h: double,
+		site.ag: double,
+		site.dg: double
+	): double where s=1
+
+	ih5p1 = call C ["./libacta.so":"acta_ih5p1_spruce"] (
+		d: double,
+		h: double,
+		site.ag: double,
+		site.dg: double,
+		site.hg: double,
+		site.G: double
+	): double
+
+}
+
+model tree {
+	grow'd = d * (let id = 1+id5p1 in (id*id)*(id*id)*id)
+	grow'h = h * (let ih = 1+ih5p1 in (ih*ih)*(ih*ih)*ih)
+}

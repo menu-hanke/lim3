@@ -3,6 +3,7 @@ data.include "auxiliary.fhk"
 data.include "eco.fhk"
 data.include "biomass.fhk"
 data.include "tapio.fhk"
+data.include "growthfunc.fhk"
 
 data.define [[
 	table site
@@ -28,15 +29,19 @@ local grow = data.transaction()
 	:update("site", {
 		year = "year + site.step"
 	})
-	:update("tree", {
-		d = "d + id5*site.step/5",
-		h = "h + ih5*site.step/5",
-		f = "f * sp5^(site.step/5)",
-		t13 = "t13_"
-	})
-	:update("stratum", {
-		last_Npros = "Npros"
-	})
+	:update("tree", function(name)
+		local gname = string.format("grow'{%s}", name)
+		if data.defined("tree", gname) then
+			return gname
+		end
+	end)
+	:update("tree", { t13 = "t13_" })
+	:update("stratum", { last_Npros = "Npros" })
+	:insert(function(tab,name)
+		if data.defined("site", string.format("ingrowth'{%s.%s}", tab, name)) then
+			return string.format("site.ingrowth'{%s.%s}", tab, name)
+		end
+	end)
 
 local movestrata
 
@@ -92,7 +97,7 @@ local function getthin()
 			})
 			:insert("tree", function(name)
 				if name == "mark" then name = "thin_mark" end
-				if data.defined("stratum_tree", name) then
+				if data.defined("site", "NN") == "data" and data.defined("stratum_tree", name) then
 					return string.format("stratum_tree.%s[(stratum_thin_remove,:)]", name)
 				end
 			end)
@@ -176,21 +181,29 @@ end
 local plant_default = {
 	stratum = {
 		t0  = "site.year",
-		snt = 3
+		snt = 3,
+		hgm = 0.3 -- TODO (model?)
 	},
 	tree = {
 		t0  = "site.year",
 		t13 = "site.year",
 		snt = 3,
-		d   = 0
+		d   = 0,
+		h   = 0.3 -- TODO (model?)
 	}
 }
 
-local function planting(specs, N, level)
-	level = level or "stratum"
+local function planting(specs, N, plantlevel)
 	return data.transaction()
-		:insert(level, function(name)
-			if level == "stratum" then
+		:insert(function(level, name)
+			if not plantlevel then
+				-- if early growth is enabled, default to stratum, otherwise trees
+				plantlevel = data.defined("site", "M") == "data" and "stratum" or "tree"
+			end
+			if level ~= plantlevel then
+				return
+			end
+			if plantlevel == "stratum" then
 				local m = name:match("^meas_(%w+)$")
 				if m then name = m end
 			end
@@ -217,6 +230,9 @@ local function setup(settings)
 		grow:include("metsi.fhk")
 	elseif settings.grow == "acta" then
 		grow:include("acta.fhk")
+	elseif settings.grow == "pukkala2021" then
+		grow:include("pukkala2021.fhk")
+		data.include("naslund.fhk")
 	end
 	if settings.early then
 		grow:include("early.fhk")

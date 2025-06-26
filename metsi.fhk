@@ -36,7 +36,7 @@ model tree where site.alr = ~alr'mineralsoil {
 		rdfL,
 		rdfL'[s=~spe'pine],
 		rdfL'[s=~spe'spruce],
-		rdfL'deciduous,
+		rdfL'birch,
 		cr,
 		crkor,
 		snt,
@@ -46,7 +46,7 @@ model tree where site.alr = ~alr'mineralsoil {
 		site.rdf,
 		site.rdf'[s=~spe'pine],
 		site.rdf'[s=~spe'spruce],
-		site.rdf'deciduous,
+		site.rdf'birch,
 		site.jd
 	) where d>0
 
@@ -121,7 +121,7 @@ model tree where site.alr > ~alr'mineralsoil {
 		d,
 		h,
 		storie,
-		baL'deciduous,
+		baL'birch,
 		site.hdom,
 		site.h100'over,
 		site.h100'retention,
@@ -144,7 +144,7 @@ model tree where site.alr > ~alr'mineralsoil {
 		baL,
 		snt,
 		site.G,
-		site.G'deciduous,
+		site.G'birch,
 		site.hdom,
 		site.h100'over,
 		site.h100'retention,
@@ -181,7 +181,7 @@ model tree where site.alr > ~alr'mineralsoil {
 		d,
 		h,
 		storie,
-		baL'deciduous,
+		baL'birch,
 		site.dgdom,
 		site.G,
 		site.G'[s=~spe'pine],
@@ -210,7 +210,7 @@ model tree where site.alr > ~alr'mineralsoil {
 		site.G,
 		site.G'[s=~spe'downy_birch or s=~spe'silver_birch] / site.G,
 		site.dg
-	) where s = ~spe'pine or s = ~spe'xconiferous
+	) where pineconif
 
 	sp5'comp = call Lua["metsi.death":"bmodel3_suo_koivu"] (
 		d,
@@ -269,7 +269,7 @@ model tree {
 		rdfL,
 		rdfL'[s=~spe'pine],
 		rdfL'[s=~spe'spruce],
-		rdfL'deciduous,
+		rdfL'birch,
 		cr,
 		crkor,
 		snt,
@@ -279,7 +279,7 @@ model tree {
 		site.rdf,
 		site.rdf'[s=~spe'pine],
 		site.rdf'[s=~spe'spruce],
-		site.rdf'deciduous,
+		site.rdf'birch,
 		site.jd
 	) where d=0
 }

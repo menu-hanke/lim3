@@ -29,6 +29,10 @@ local function expm1(x)
 	return exp(x) - 1
 end
 
+local function sigmoid(x)
+	return 1 / (1 + exp(-x))
+end
+
 local function choose(c, a, b)
 	if c then
 		return a or 1
@@ -171,6 +175,7 @@ return {
 	dnz        = dnz,
 	clamp      = clamp,
 	expm1      = expm1,
+	sigmoid    = sigmoid,
 	choose     = choose,
 	sgn1       = sgn1,
 	tolmax     = tolmax,

@@ -1,0 +1,31 @@
+# id5
+model tree {
+	id5 = call Lua ["metsi.pukkala2021":"id5_pine"] (d, baL, site.G, site.dd, site.mty, site.alr)
+		where pineconif
+	id5 = call Lua ["metsi.pukkala2021":"id5_spruce"] (d, baL, baL'[s=~spe'spruce], site.G, site.dd, site.mty)
+		where s=~spe'spruce
+	id5 = call Lua ["metsi.pukkala2021":"id5_deciduous"] (s, d, baL - baL'pineconif, site.G, site.dd, site.mty)
+}
+
+# sp5
+model tree {
+	sp5 = call Lua ["metsi.pukkala2021":"sp5_fix_pine"] (d, baL, site.alr)
+		where pineconif
+	sp5 = call Lua ["metsi.pukkala2021":"sp5_fix_spruce"] (d, baL'[s=~spe'spruce], site.alr)
+		where s=~spe'spruce
+	sp5 = call Lua ["metsi.pukkala2021":"sp5_fix_deciduous"] (s, d, baL, baL'pineconif, site.alr)
+}
+
+# ingrowth
+# (TODO: this should be randomized)
+model site {
+	ingrowth'{tree.d} = 0
+	ingrowth'{tree.t0} = year
+	ingrowth'{tree.t13} = year
+	ingrowth'{tree.s} = [1,2,3]
+	ingrowth'{tree.f} = [
+		call Lua ["metsi.pukkala2021":"ing5_pine"] (dd, G, mty),
+		call Lua ["metsi.pukkala2021":"ing5_spruce"] (dd, G, G'pineconif, mty),
+		call Lua ["metsi.pukkala2021":"ing5_birch"] (dd, G, G'pineconif, mty)
+	]
+}

@@ -1,0 +1,5 @@
+model tree {
+	grow'd = d + id5*site.step/5
+	grow'h = h + ih5*site.step/5
+	grow'f = f * sp5^(site.step/5)
+}
