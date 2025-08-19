@@ -213,7 +213,7 @@ local function planting(specs, N, plantlevel)
 			if name == "f" and specs.s then
 				-- TODO (fhk): uncomment this when indexing arbitrary expressions is supported
 				-- local expr = string.format("(site.rlv_f)[%s-1]", specs.spe)
-				local expr = string.format([[call Lua ["metsi.tapio":"rlv_f"] (site.mty, %s) ]], specs.s)
+				local expr = string.format("rlv_f(%s)", specs.s)
 				if N then
 					expr = string.format("%s/%s", expr, N)
 				end

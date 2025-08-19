@@ -8,6 +8,15 @@ macro spe'black_alder      7
 macro spe'xconiferous      8
 macro spe'xdeciduous       9
 
+macro mty'OMaT             1
+macro mty'OMT              2
+macro mty'MT               3
+macro mty'VT               4
+macro mty'CT               5
+macro mty'ClT              6
+macro mty'ROCK             7
+macro mty'MTN              8
+
 macro alr'mineralsoil      1
 macro alr'peat_spruce      2
 macro alr'peat_pine        3
