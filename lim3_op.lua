@@ -18,16 +18,14 @@ data.define [[
 
 data.define [[
 	model tree {
-		t13_ = site.year+site.step where h<1.3
+		t13_ = site.year+query.step where h<1.3
 		t13_ = t13
 	}
 ]]
 
--- TODO: muuta nämä yhtälöt muotoon x = ix_step, ja laita ix_step = ... kaavat mallikirjastoon
 local grow = data.transaction()
-	-- :param("step")
 	:update("site", {
-		year = "year + site.step"
+		year = "year + query.step"
 	})
 	:update("tree", function(name)
 		local gname = string.format("grow'{%s}", name)
@@ -48,14 +46,9 @@ local movestrata
 -- TODO (m3): m3 should have a hook to run this when `f` changes
 local cleantrees = data.transaction():delete("tree", "f<0.1")
 
--- TODO: replace with query parameter when implemented in fhk/m3
--- TODO: should be global.step
-local setstep = data.transaction():update("site", {step=data.arg()})
-
 local function np(step)
 	cleantrees()
-	setstep(step or 5)
-	grow()
+	grow({step=step})
 	if movestrata then
 		-- TODO: this should also be hooked on condition change
 		movestrata()
@@ -63,8 +56,8 @@ local function np(step)
 end
 
 local function define_movestrata(cond)
+	data.define(string.format("model global stratum_exit_early = which(stratum._'{not (%s)})", cond))
 	movestrata = data.transaction()
-		:define(string.format("model global stratum_exit_early = which(stratum._'{not (%s)})", cond))
 		:delete("stratum", string.format("_'{not (%s)}", cond))
 		:insert("tree", function(name)
 			if data.defined("stratum_tree", name) and name ~= "thin_mark" then
@@ -85,12 +78,11 @@ local thin, cut
 
 local function getthin()
 	if not thin then
+		data.define [[
+			model stratum thin_remove = any(stratum_tree.thin_mark > 1)
+			model global stratum_thin_remove = which(stratum.thin_remove)
+		]]
 		thin = data.transaction()
-			-- :param("thin_method")
-			:define([[
-				model stratum thin_remove = any(stratum_tree.thin_mark > 1)
-				model global stratum_thin_remove = which(stratum.thin_remove)
-			]])
 			:delete("stratum", "thin_remove")
 			:update("tree", {
 				mark = "thin_mark"
@@ -135,26 +127,30 @@ local thinid = 0
 local function thinning(var, target, profile)
 	local thid = thinid
 	thinid = thinid+1
-	local thin = getthin()
-	thin:define(string.format([=[
+	-- passing query.thin_method to the lua function is a hack to make fhk think it's query
+	-- dependent.
+	-- TODO: proper fix in fhk: add a state.query effect that is reset on every query,
+	--       and use effect(...) here
+	-- TODO: better implementation here: create fhk wrapper (`func thin(...) = ...`) for the lua
+	--       thinning function, and create a separate query for each thinning.
+	--       requires multiple return value support for user funcs, or split return vector in lua.
+	data.define(string.format([=[
 		model site tree.thin_mark, stratum_tree.thin_mark[::]
 				= call Lua["return require('metsi.thin').new(%s)"] (
-			%s,
+			%s + 0*query.thin_method,
 			[..tree.d, ..stratum_tree.d[::]],
 			[..tree.f, ..stratum_tree.f[::]],
 			[..tree._'{%s}, ..stratum_tree._'{%s}[::]],
-			out[N], out[NN]
-		) where thin_method=%d
+			out[N], out[NN],
+		) where query.thin_method=%d
 	]=],
 		profile,
 		target,
 		var, var,
 		thid
 	))
-	local setthid = data.transaction():update("site", {thin_method=thid})
 	return control.all {
-		setthid,
-		getthin(),
+		control.call(getthin(), {thin_method=thid}),
 		getcut()
 	}
 end
@@ -243,7 +239,7 @@ local function setup(settings)
 			table stratum_tree[0,0]
 			model site { M = 0 NN = 0 }
 			model stratum { s = 0 g = 0 f = 0 da = 0 dgm = 0 ha = 0 hgm = 0 hdom = 0 t0 = 0 t13 = 0 }
-			model stratum_tree { s = 0 f = 0 d = 0 h = 0 g = 0 t0 = 0 t13 = 0}
+			model stratum_tree { s = 0 f = 0 d = 0 h = 0 g = 0 t0 = 0 t13 = 0 }
 		]]
 	end
 	if not cut then
