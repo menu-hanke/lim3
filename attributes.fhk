@@ -1,0 +1,158 @@
+# ---- Site-level attributes ---------------------------------------------------
+
+model site {
+
+	dg = sum(tree.f * tree.d^3) / sum(tree.f * tree.d^2)
+	hg = sum(tree.f * tree.h * tree.d^2) / sum(tree.f * tree.d^2)
+	ag = (sum(tree.f * tree.a * tree.g) + sum(stratum.f * stratum.a * stratum.g))
+		/ (sum(tree.f * tree.g) + sum(stratum.f * stratum.g))
+
+	tkg = call Lua ["metsi.site":"tkg"] (mty, alr, 0)
+
+	# TODO: terrain class
+	tc = 1
+
+	# TODO: port temperature model
+	default'dd = 1300
+
+	# TODO: port lake/sea/height models
+	default'Z = 80
+	lake = 0
+	sea = 0
+
+}
+
+macro var site F'$filter = sumT'(f where $filter)
+# TODO: G should take saplings into account (maybe?)
+macro var site G'$filter = sumT'(f*g where $filter)
+macro var site V'$filter = sumT'(f*v where $filter)
+macro var site rdf'$filter = sumT'(ccf where $filter)
+
+# stories
+model site {
+	growing_storie = call Lua ["metsi.site":"growst"] (sdom, tree.storie, tree.s)
+}
+
+# dominant trees
+model site {
+	sdom = call Lua ["metsi.site":"spedom"] (tree.s, tree.g)
+	hdom = call Lua ["metsi.site":"xdoma"] (tree.h, tree.f, tree.order2'{d, h})
+	ddom = call Lua ["metsi.site":"xdoma"] (tree.d, tree.f, tree.order2'{d, h})
+	hdomj = hdom # TODO
+	dgdom = call Lua ["metsi.site":"dgdom"] (growing_storie, sdom, tree.storie, tree.s, tree.d, tree.f)
+}
+
+macro var site since'$expr = year - ($expr)
+
+# cost calculation
+model site {
+
+	# forest haulage distance (m)
+	default'hdist = 500
+
+}
+
+# ---- Tree-level attributes ---------------------------------------------------
+
+# TODO: uncomment after tensor-valued query parameters are implemented in fhk
+# model global tree.w = query.w
+
+model tree {
+	
+	pineconif = s=~spe'pine or s=~spe'xconiferous
+	birch = s=~spe'silver_birch or s=~spe'downy_birch
+
+	# basal area (m^2)
+	g = (~pi/4)/10000 * d^2
+
+	a = site.year - t0
+	a13 = site.year - t13
+
+	dk = 2 + 1.25*d
+
+}
+
+model tree {
+
+	crkor = 0 # TODO
+
+	cr = call Lua["metsi.cr":"cr"] (
+		s,
+		rdfL,
+		site.mty,
+		site.dd,
+		site.dg,
+		site.hg,
+		site.rdf
+	)
+
+	ccf = call Lua["metsi.ccf":"ccf"] (
+		d,
+		f,
+		s,
+		site.mty,
+		site.verlt,
+		site.lake,
+		site.sea,
+		site.Z,
+		site.dd
+	)
+
+}
+
+macro var tree rdfL'$filter = sumL'(ccf where $filter)
+macro var tree baL'$filter = sumL'(f*g where $filter)
+
+# volume (m^3)
+model tree v, v_saw, v_pulp, v_waste = call Lua ["metsi.vol":"vol"] (s, d, h)
+
+# small tree biomass models (kg)
+# Repola (2008, 2009)
+model tree where d=0 {
+	bm_stem = call Lua ["metsi.biomass":"bm_stem_small"] (s, h)
+	bm_bark = call Lua ["metsi.biomass":"bm_bark_small"] (s, h)
+	bm_live_branches = call Lua ["metsi.biomass":"bm_live_branches_small"] (s, h)
+	bm_dead_branches = call Lua ["metsi.biomass":"bm_dead_branches_small"] (s, h)
+	bm_foliage = call Lua ["metsi.biomass":"bm_foliage_small"] (s, h)
+	bm_stump = call Lua ["metsi.biomass":"bm_stump_small"] (s, h)
+}
+
+# big tree biomass models (kg)
+# Repola (2008, 2009)
+model tree {
+	bm_stem = call Lua ["metsi.biomass":"bm_stem"] (s, dk, h, a13)
+	bm_bark = call Lua ["metsi.biomass":"bm_bark"] (s, dk, h)
+	bm_live_branches = call Lua ["metsi.biomass":"bm_live_branches"] (s, dk, h, h*cr)
+	bm_dead_branches = call Lua ["metsi.biomass":"bm_dead_branches"] (s, dk, h)
+	bm_foliage = call Lua ["metsi.biomass":"bm_foliage"] (s, dk, h, cr)
+	bm_stump = call Lua ["metsi.biomass":"bm_stump"] (s, dk)
+}
+
+# root>5cm biomass
+model tree bm_roots5 = call Lua ["metsi.biomass":"bm_roots5"] (s, d)
+
+# inverse density (m^3/kg)
+model tree p1_branches, p1_foliage, p1_dead_branches, p1_stump, p1_roots = call Table ["data/bmvol.csv"]
+	(kspe3(s), out, out, out, out, out)
+
+# ---- Tree-level attributes (stratum trees ) ----------------------------------
+
+model stratum_tree {
+
+	s = stratum.s
+	t0 = stratum.t0
+	t13 = t0+10  # TODO how to compute this??
+	g = (~pi/4)/10000 * d^2
+
+}
+
+# ---- Stratum-level attributes ------------------------------------------------
+
+model stratum {
+
+	pineconif = s=~spe'pine or s=~spe'xconiferous
+	birch = s=~spe'silver_birch or s=~spe'downy_birch
+	a = site.year - t0
+	Npros = f / site.F
+
+}

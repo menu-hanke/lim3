@@ -1,0 +1,289 @@
+# ---- Puiden valinta ----------------------------------------------------------
+
+# käsittelyn valinta
+model tree {
+
+	# korjataan ainespuuksi
+	h_istimber = w>0 and v_saw+v_pulp>0 and not p_isew
+
+	# korjataan energiapuuksi
+	h_isenergy = w>0 and p_isew
+
+	# korjataan kanto
+	h_isstump = w>0 and p_isewk
+
+}
+
+# indeksit
+model site {
+
+	# ainespuuksi korjattavat
+	h_timber = which(tree.h_istimber)
+
+	# energiapuuksi korjattavat
+	h_energy = which(tree.h_isenergy)
+
+	# kannot
+	h_enek = which(tree.h_isstump)
+
+}
+
+# ---- Energiapuun korjuu ------------------------------------------------------
+
+model tree {
+
+	h_eker = 1 where site.p_bewtag=4 or site.p_bewtag=7
+	h_eker = call Lua ["metsi.harvest":"eker"] (d, h, v)
+	h_ekerr = select(site.p_bewtag >= 4, h_eker, h_eker*p_ewresp)
+
+	h_ev_stem = h_eker * (v_saw+v_pulp) where p_isew
+	h_ev_stem = v - (v_saw+v_pulp)
+
+	h_ev_branchl = h_ekerr * p1_branches * bm_live_branches
+		where site.p_bewtag=1 or site.p_bewtag=3 or site.p_bewtag=4 or site.p_bewtag=5
+		or site.p_bewtag=7 or site.p_bewtag=8
+	h_ev_branchl = 0
+
+	h_ev_branchd = h_ekerr * p1_dead_branches * bm_dead_branches
+		where site.p_bewtag=1 or site.p_bewtag=3 or site.p_bewtag=4 or site.p_bewtag=5
+		or site.p_bewtag=7 or site.p_bewtag=8
+	h_ev_branchd = 0
+
+	h_ev_branch = h_ev_branchl + h_ev_branchd
+
+	# XXX: tämä ei mene ihan oikein
+	h_ev_foliage = h_ekerr * p1_foliage * bm_foliage
+		where site.p_bewtag=1 or site.p_bewtag=3 or site.p_bewtag=4 or site.p_bewtag=5
+		or site.p_bewtag=7 or site.p_bewtag=8
+	h_ev_foliage = 0
+
+	# TODO: kantojen nosto uudistushakkuussa
+	h_ev_stump = p_ewstumpp * p1_stump * bm_stump
+		where (site.p_bewtag=2 or site.p_bewtag=3) and p_isewk
+	h_ev_stump = 0
+
+	# TODO: kantojen nosto uudistushakkuussa
+	h_ev_roots = p_ewstumpp * p1_roots * bm_roots5
+		where (site.p_bewtag=2 or site.p_bewtag=3) and p_isewk
+	h_ev_roots = 0
+}
+
+# ---- Ajanmenekit ja kustannukset ---------------------------------------------
+
+model tree {
+
+	# rungon käsittelyaika motolla (h/runko)
+	h_tmoto = call Lua ["metsi.harvest":"moto_ptime"] (
+		s,
+		v,
+		select(site.p_bisrenew, "thinning", "clearcut")
+	)
+	
+	# rungon käsittelyaika manuaalisesti (h/runko)
+	h_tmanu = call Lua ["metsi.harvest":"tmanu"] (
+		s,
+		v_saw+v_pulp,
+		0, # TODO: lumi
+		false, # TODO: mittaustapa (parametri, ks. lmdl)
+		select(site.p_bisrenew, "thinning", "clearcut"),
+		false # TODO: ensiharvennus-dummy.
+	)
+
+	# kannon nostoaika (h/kanto)
+	h_tstu = call Lua ["metsi.harvest":"stump_tlift"] (s, d)
+
+}
+
+# ainespuu
+model site {
+
+	# poistuma (m^3/ha)
+	h_aRC = sum(tree._'{w*(v_saw+v_pulp)}[h_timber])
+
+	# poistuma (runkoa/ha) [tntr]
+	h_aFC = sum(tree.w[h_timber])
+
+	# ainespuun osuus kokonaispoistumasta [a_osuus]
+	h_relvt = select(h_aRC+h_aRE>0, h_aRC/(h_aRC+h_aRE), 0)
+
+	# metsäkuljetuksen ajanmenekki [thau] (h/ha)
+	h_thaul = call Lua ["metsi.harvest":"forhau"] (
+		tree.s[h_timber],
+		tree.w[h_timber],
+		tree.v_saw[h_timber],
+		tree.v_pulp[h_timber],
+		0,  # TODO: lumi (vaikuttaa vaan manuun)
+		hdist,
+		tc,
+		select(p_bisrenew, "thinning", "clearcut"),
+		select(p_bprofe, "forwarder", "farmtractor")
+	)
+
+	# metsäkuljetuskustannukset [chau] (€/ha)
+	h_chaul = p_chhaul*h_thaul + p_chmachine*h_relvt where h_thaul>0 and p_chhaul>0
+	h_chaul = 0
+
+	# moton kokonaissiirtymisaika (h/ha)
+	h_tmotozz = call Lua ["metsi.harvest":"moto_zz"] (h_aFC,
+		select(p_bisrenew, "thinning", "clearcut"))
+
+	# koneellisen hakkuun ajanmenekki (h/ha) [tmot]
+	h_tmoto = h_tmotozz + sum(tree._'{w*h_tmoto}[h_timber])
+
+	# manuaalisen hakkuun ajanmenekki (h/ha) [tman]
+	h_tmanu = sum(tree._'{w*h_tmanu}[h_timber])
+
+	# koneellisen korjuun kustannukset [cmoto] (€/ha)
+	h_cmoto = p_chmoto*h_tmoto + p_chmachine*h_relvt where h_tmoto>0 and p_chmoto>0
+	h_cmoto = 0
+
+	# manuaalisen korjuun kustannukset [cmanu] (€/ha)
+	h_cmanu = p_chmanu*h_tmanu
+
+	# hakkuutavan valinta [icutme]
+	# 1->moto, 2->manu
+	h_bcme = p_bcme where p_bcme > 0
+	h_bcme = select(h_cmoto <= h_cmanu, 1, 2)
+
+	# suunnittelu- ja valvontakustannukset (h/ha) [tc]
+	# jos manuhakkuu ilman energiapuukertymää niin pinomittaus, muuten aina konemittaus
+	h_tadmi = call Lua ["metsi.harvest":"admi_t1"] (area, hdist, h_RL, h_RP, p_bisrenew, true)
+		where h_bcme=2 and h_aRE=0
+	h_tadmi = call Lua ["metsi.harvest":"admi_t5"] (area, hdist, h_RC+h_RE, false, p_bisrenew)
+
+	# suunnittelu- ja valvontakustannukset (€/ha)
+	h_cadmi = p_chadmi * h_tadmi * h_relvt where p_chadmi>0
+	h_cadmi = 0
+
+	# organisointikustannuskerroin
+	h_corgk = select(p_bewtag >= 4, select(p_bewtag <= 6, 0.7, 1.0), 1.0)
+
+	# organisointikustannukset (€/ha)
+	h_corg = p_chorg * h_aRC * h_corgk where p_chorg>0
+	h_corg = 0
+
+}
+
+# energiapuu
+model site {
+
+	# poistuma (m^3/ha)
+	h_aRE     = sum(tree._'{w*(h_ev_stem+h_ev_branch+h_ev_foliage+h_ev_stump+h_ev_roots)}[h_energy])
+	h_aREt    = sum(tree._'{w*(h_ev_stem+h_ev_branch+h_ev_foliage)}[h_energy])
+	h_aREst   = sum(tree._'{w*h_ev_stem}[h_energy])
+	h_aREspro = sum(tree._'{w*(h_ev_stump+h_ev_roots)}[h_energy])
+
+	# poistuma (runkoa/ha) [entr]
+	h_aFE     = sum(tree.w[h_energy])
+
+	# nostettavien kantojen määrä (1/ha) [enst]
+	h_aFEsp   = sum(tree.w[h_enek])
+
+	# energiapuun osuus kokonaispoistumasta [e_osuus]
+	h_relve = 1-h_relvt
+
+	h_cemachine = p_cemachine/area
+	h_cemachinex = select(p_bewtag>=7, 1, h_relve) * p_cemachine
+
+	# energiapuun korjuu rankahakkuuna
+	h_tene1l, h_tene1h, h_cene1l, h_cene1h = call Lua ["metsi.harvest":"ew_tc4"] (
+		h_aREst,
+		h_aFE,
+		hdist,
+		p_ceharv,
+		p_cehfor,
+		h_cemachinex
+	) where p_bewtag=6 or p_bewtag=9
+
+	# energiapuun korjuu koko- tai osapuuna
+	h_tene1l, h_tene1h, h_cene1l, h_cene1h = call Lua ["metsi.harvest":"ew_tc123t"] (
+		tree.s[h_energy],
+		tree.w[h_energy],
+		tree._'{h_ev_stem+h_ev_branch+h_ev_foliage}[h_energy],
+		hdist,
+		p_bewtag=5 or p_bewtag=8,
+		p_ceharv,
+		p_cemanu,
+		p_ceharw,
+		p_cehfor,
+		h_cemachinex
+	)
+
+	h_tene1 = h_tene1l+h_tene1h
+	h_cene1 = h_cene1l+h_cene1h
+
+	# hakkuutähteen korjuun ajanmenekki (h/ha) + kustannus (€/ha)
+	h_tene2, h_cene2x = call Lua ["metsi.harvest":"ht_tc123"] (
+		h_aREt,
+		hdist,
+		p_cehfor,
+		p_cebundler,
+		h_cemachine
+	)
+
+	# kannonnoston kokonaissiirtymisaika (h/ha)
+	h_tstmove = call Lua ["metsi.harvest":"stump_tmove"] (p_ewstumpp * h_aFEsp)
+
+	# kantojen kokonaisnostoaika (h/ha)
+	h_tstlift = p_ewstumpp * sum(tree._'{w*h_tstu}[h_enek])
+
+	# kantojen noston kokonaisajanmenekki (h/ha)
+	h_tstu = h_tstmove + h_tstlift
+
+	# kantojen metsäkuljetuksen ajanmenekki (tce1k)
+	h_tsthaul = call Lua ["metsi.harvest":"stump_thaul"] (h_aREspro, hdist)
+
+	# metsätraktorin siirtokustannukset (€/ha)
+	h_cene2 = h_cene2x + h_aREt*p_cepilecomp + h_cemachine
+		where (p_bewtag=1 or p_bewtag=3) and h_aREt>0
+	h_cene2 = 0
+
+	# nostokoneen siirtokustannukset (€/ha)
+	h_cene3 = p_ceslift*h_tstu + h_cemachine where h_tstu>0
+	h_cene3 = 0
+
+	# kuormatraktorin siirtokustannukset kannonnostossa (€/ha)
+	h_cene4 = p_cehfor*h_tsthaul + h_cemachine where h_tsthaul>0
+	h_cene4 = 0
+
+	# energiapuun korjuun suunnittelu- ja valvontakustannukset (€/ha)
+	h_ceadmi = p_chadmi * h_tadmi * h_relve where p_chadmi>0
+	h_ceadmi = 0
+
+	# energiapuun korjuun organisointikustannukset (€/ha)
+	h_ceorg = p_ceorg * h_aRE * h_corgk where p_ceorg>0
+	h_ceorg = 0
+
+}
+
+# ---- Keruumuuttujat ----------------------------------------------------------
+
+# aines- ja energiapuusummat
+macro var site h_sumT'{$expr where $filter} = area * sum(
+	tree._'{w*($expr)}[which(tree._'{h_istimber and ($filter)})])
+macro var site h_sumT'{$expr where} = area * sum(tree._'{w*($expr)}[h_timber])
+macro var site h_sumE'{$expr where $filter} = area * sum(
+	tree._'{w*($expr)}[which(tree._'{h_isenergy and ($filter)})])
+macro var site h_sumE'{$expr where} = area * sum(tree._'{w*($expr)}[h_energy])
+
+# ainespuukertymät (m^3)
+macro var site h_RL'$filter   = h_sumT'{v_saw where $filter}
+macro var site h_RP'$filter   = h_sumT'{v_pulp where $filter}
+macro var site h_RC'$filter   = h_sumT'{v_saw+v_pulp where $filter}
+
+# energiapuukertymät (m^3)
+macro var site h_RE'$filter   = h_sumE'{h_ev_stem+h_ev_branch+h_ev_foliage+h_ev_stump+h_ev_roots
+	where $filter}
+macro var site h_REt'$filter  = h_sumE'{h_ev_stem+h_ev_branch+h_ev_foliage where $filter}
+macro var site h_RErw'$filter = h_sumE'{v_saw+v_pulp where $filter}
+macro var site h_REst'$filter = h_sumE'{h_ev_stem where $filter}
+macro var site h_REbr'$filter = h_sumE'{h_ev_branchl+h_ev_branchd where $filter}
+macro var site h_REfo'$filter = h_sumE'{h_ev_foliage where $filter}
+macro var site h_REsp'$filter = h_sumE'{h_ev_stump where $filter}
+macro var site h_REro'$filter = h_sumE'{h_ev_roots where $filter}
+
+# ainespuun korjuukustannukset (€)
+model site h_WC = area * (h_cmoto + h_chaul + h_cadmi + h_corg)
+
+# energiapuun korjuukustannukset (€)
+model site h_WEc = area * (h_cene1 + h_cene2 + h_cene3 + h_cene4 + h_ceadmi + h_ceorg)

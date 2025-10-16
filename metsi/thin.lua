@@ -41,7 +41,7 @@ local function constweights(w, n)
 	return 1
 end
 
--- NOTE: w and d are C arrays (0-based), profile is a lua table (1-based)
+-- NOTE: w, d, and profile are C arrays (0-based)
 local function weights(w, d, n, profile)
 	local nprof = #profile
 	if nprof <= 1 then
@@ -62,7 +62,7 @@ local function weights(w, d, n, profile)
 		local di = d[i]-m
 		local j = min(floor(di*t1), nprof-2)
 		local s = (di-j*t)*t1
-		local wi = profile[j+1]*(1-s) + profile[j+2]*s
+		local wi = profile[j]*(1-s) + profile[j+1]*s
 		if wi < EPSILON then
 			wi = 0
 		else
@@ -93,7 +93,7 @@ local function writeoutput(f, w, t, idx, out, ...)
 	return writeoutput(f, w, t, idx, ...)
 end
 
-local function thin(profile, target, d, f, x, ...)
+local function sele(profile, target, d, f, x, ...)
 	local n = #x
 	local w = workarray(n, ...)
 	local wmin = weights(w, d, n, profile)
@@ -130,12 +130,6 @@ local function thin(profile, target, d, f, x, ...)
 	writeoutput(f, w, t, 0, ...)
 end
 
-local function new(...)
-	--print("thin.new ->", ...)
-	local profile = {...}
-	return function(...) return thin(profile, ...) end
-end
-
 return {
-	new = new
+	sele = sele
 }

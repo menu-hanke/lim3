@@ -1,9 +1,11 @@
-data.include "coding.fhk"
-data.include "auxiliary.fhk"
+local buffer = require "string.buffer"
+
+data.include "def.fhk"
+data.include "attributes.fhk"
 data.include "eco.fhk"
-data.include "biomass.fhk"
-data.include "tapio.fhk"
-data.include "growthfunc.fhk"
+data.include "harvest.fhk"
+data.include "op.fhk"
+data.include "param.fhk"
 
 data.define [[
 	table site
@@ -11,19 +13,68 @@ data.define [[
 	table stratum[site.M]
 ]]
 
+---- Operations ----------------------------------------------------------------
+
+local OP_CONF_ORDER = 100
+local global_opno = 1 -- 0 is reserved for np
+-- TODO: m3: data.bind(var, memslot) -> make `lim3_op` a cdata integer
+-- memslot:bind(tab, var) ?
+local setop = data.transaction():update("global", {lim3_op=data.arg()})
+
+local function op__control(op)
+	return op.ctr
+end
+
+local function op_configtab(buf, op, tab, config)
+	buf:put("model(", OP_CONF_ORDER, ") ", tab, " where global.lim3_op=", op.no, " {")
+	for k,v in pairs(config) do
+		buf:put(k, "=", v, " ")
+	end
+	buf:put("}")
+end
+
+local function op_config(op, tab, config)
+	local buf = buffer.new()
+	if type(tab) == "table" then
+		for _,t in ipairs(tab) do
+			op_configtab(buf, op, t, config)
+		end
+	else
+		op_configtab(buf, op, tab, config)
+	end
+	data.define(buf)
+	return op
+end
+
+local op_mt = {
+	__m3_control = op__control,
+	config       = op_config
+}
+op_mt.__index = op_mt
+
+local function newop(ctr)
+	local no = global_opno
+	global_opno = global_opno+1
+	return setmetatable({
+		ctr = control.all { control.call(setop, no), ctr },
+		no  = no
+	}, op_mt)
+end
+
+local function lazy(f)
+	local x
+	return function()
+		if not x then
+			x = f()
+		end
+		return x
+	end
+end
+
 ---- Natural processes ---------------------------------------------------------
 
--- TODO: add if-then-else expression to fhk, then this can be rewritten simply as
---   t13 = "if h<1.3 then site.year+site.step else t13"
-
-data.define [[
-	model tree {
-		t13_ = site.year+query.step where h<1.3
-		t13_ = t13
-	}
-]]
-
 local grow = data.transaction()
+	:bind("step", data.arg())
 	:update("site", {
 		year = "year + query.step"
 	})
@@ -33,7 +84,7 @@ local grow = data.transaction()
 			return gname
 		end
 	end)
-	:update("tree", { t13 = "t13_" })
+	:update("tree", { t13 = "select(h<1.3, site.year+query.step, t13)" })
 	:update("stratum", { last_Npros = "Npros" })
 	:insert(function(tab,name)
 		if data.defined("site", string.format("ingrowth'{%s.%s}", tab, name)) then
@@ -47,8 +98,9 @@ local movestrata
 local cleantrees = data.transaction():delete("tree", "f<0.1")
 
 local function np(step)
+	setop(0)
 	cleantrees()
-	grow({step=step})
+	grow(step)
 	if movestrata then
 		-- TODO: this should also be hooked on condition change
 		movestrata()
@@ -68,129 +120,76 @@ end
 
 ---- Cutting -------------------------------------------------------------------
 
+-- TODO: tree.w should be a query parameter when fhk gets support for tensor-valued query params
 data.define [[
-	model tree default'mark = 0
-	model tree default'thin_mark = 0
-	model stratum_tree default'thin_mark = 0
+	model tree default'w = 0
 ]]
 
-local thin, cut
+local getselect = lazy(function()
+	data.define [[
+		model global stratum_select_remove = which(stratum.select_f > 1)
+	]]
+	return data.transaction()
+	-- TODO: m3: implement deletion by index and use stratum_select_remove here
+		:delete("stratum", "select_f>1")
+		:update("tree", { w = "select_f" })
+		:insert("tree", function(name)
+			if name == "w" then name = "select_f" end
+			if data.defined("site", "NN") == "data" and data.defined("stratum_tree", name) then
+				return string.format("stratum_tree.%s[(stratum_select_remove,:)]", name)
+			end
+		end)
+end)
 
-local function getthin()
-	if not thin then
-		data.define [[
-			model stratum thin_remove = any(stratum_tree.thin_mark > 1)
-			model global stratum_thin_remove = which(stratum.thin_remove)
-		]]
-		thin = data.transaction()
-			:delete("stratum", "thin_remove")
-			:update("tree", {
-				mark = "thin_mark"
-			})
-			:insert("tree", function(name)
-				if name == "mark" then name = "thin_mark" end
-				if data.defined("site", "NN") == "data" and data.defined("stratum_tree", name) then
-					return string.format("stratum_tree.%s[(stratum_thin_remove,:)]", name)
-				end
-			end)
-	end
-	return thin
-end
+local getselectall = lazy(function()
+	return data.transaction()
+		:delete("stratum", "true") -- TODO (m3): delete("stratum") should delete everything
+		:update("tree", {
+			w = "f"
+		})
+		:insert("tree", function(name)
+			if name == "w" then name = "f" end
+			if data.defined("stratum_tree", name) then
+				return string.format("stratum_tree.%s[::]", name)
+			end
+		end)
+end)
 
-local cut_var = { RC="vtot", income="value" }
+local getcut = lazy(function()
+	return data.transaction()
+		:update("site", function(name)
+			local hvar = string.format("h_%s", name)
+			if data.defined("site", hvar) then
+				return string.format("%s + %s", name, hvar)
+			end
+		end)
+		:update("tree", {
+			f = "f - w",
+			w = "0"
+		})
+end)
 
-local function getcut()
-	if not cut then
-		cut = data.transaction()
-			:update("site", function(name)
-				local stem, filter = name:match("^([^']*)'?(.*)$")
-				if cut_var[stem] then
-					if filter ~= "" then
-						if filter:sub(1,1) == "{" then
-							filter = filter:sub(2,-2)
-						end
-						return string.format("%s + sumT'{mark*%s where %s}", name, cut_var[stem], filter)
-					else
-						return string.format("%s + sum(tree.mark*tree.%s)", name, cut_var[stem])
-					end
-				end
-			end)
-			:update("tree", {
-				f = "f - mark",
-				mark = "0"
-			})
-	end
-	return cut
-end
-
-local thinid = 0
 local function thinning(var, target, profile)
-	local thid = thinid
-	thinid = thinid+1
-	-- passing query.thin_method to the lua function is a hack to make fhk think it's query
-	-- dependent.
-	-- TODO: proper fix in fhk: add a state.query effect that is reset on every query,
-	--       and use effect(...) here
-	-- TODO: better implementation here: create fhk wrapper (`func thin(...) = ...`) for the lua
-	--       thinning function, and create a separate query for each thinning.
-	--       requires multiple return value support for user funcs, or split return vector in lua.
-	data.define(string.format([=[
-		model site tree.thin_mark, stratum_tree.thin_mark[::]
-				= call Lua["return require('metsi.thin').new(%s)"] (
-			%s + 0*query.thin_method,
-			[..tree.d, ..stratum_tree.d[::]],
-			[..tree.f, ..stratum_tree.f[::]],
-			[..tree._'{%s}, ..stratum_tree._'{%s}[::]],
-			out[N], out[NN],
-		) where query.thin_method=%d
-	]=],
-		profile,
-		target,
-		var, var,
-		thid
-	))
-	return control.all {
-		control.call(getthin(), {thin_method=thid}),
-		getcut()
-	}
+	return newop(control.all { getselect(), getcut() })
+		:config({"tree", "stratum_tree"}, {select_var=var})
+		:config("site", {
+			select_target = target,
+			select_profile = profile
+		})
 end
 
 local function clearcut()
-	return control.all {
-		data.transaction()
-			:delete("stratum", "true") -- TODO (m3): delete("stratum") should delete everything
-			:update("tree", {
-				mark = "f"
-			})
-			:insert("tree", function(name)
-				if name == "mark" then name = "f" end
-				if data.defined("stratum_tree", name) then
-					return string.format("stratum_tree.%s[::]", name)
-				end
-			end),
-		getcut()
-	}
+	return newop(control.all { getselectall(), getcut() })
 end
 
 ---- Planting ------------------------------------------------------------------
 
-local plant_default = {
-	stratum = {
-		t0  = "site.year",
-		snt = 3,
-		hgm = 0.3 -- TODO (model?)
-	},
-	tree = {
-		t0  = "site.year",
-		t13 = "site.year",
-		snt = 3,
-		d   = 0,
-		h   = 0.3 -- TODO (model?)
-	}
-}
-
-local function planting(specs, N, plantlevel)
-	return data.transaction()
+local function planting(specs, plantlevel)
+	local s, N = assert(specs.s, "missing planting species"), specs.N
+	specs.s, specs.N = nil, nil
+	return newop(data.transaction()
+		:bind("plant_s", s)
+		:bind("plant_N", N or 1)
 		:insert(function(level, name)
 			if not plantlevel then
 				-- if early growth is enabled, default to stratum, otherwise trees
@@ -206,32 +205,25 @@ local function planting(specs, N, plantlevel)
 			if specs[name] then
 				return specs[name]
 			end
-			if name == "f" and specs.s then
-				-- TODO (fhk): uncomment this when indexing arbitrary expressions is supported
-				-- local expr = string.format("(site.rlv_f)[%s-1]", specs.spe)
-				local expr = string.format("rlv_f(%s)", specs.s)
-				if N then
-					expr = string.format("%s/%s", expr, N)
-				end
-				return expr
+			if data.defined("site", string.format("plant'{%s.%s}", level, name)) then
+				return string.format("site.ingrowth'{%s.%s}", level, name)
 			end
-			return plant_default[level][name]
-		end)
+		end))
 end
 
 --------------------------------------------------------------------------------
 
 local function setup(settings)
 	if settings.grow == "metsi" or settings.grow == nil then
-		grow:include("metsi.fhk")
+		data.include("metsi.fhk")
 	elseif settings.grow == "acta" then
-		grow:include("acta.fhk")
+		data.include("acta.fhk")
 	elseif settings.grow == "pukkala2021" then
-		grow:include("pukkala2021.fhk")
+		data.include("pukkala2021.fhk")
 		data.include("naslund.fhk")
 	end
 	if settings.early then
-		grow:include("early.fhk")
+		data.include("early.fhk")
 		define_movestrata(settings.early)
 	else
 		-- TODO: allow defining these automatically with m3
@@ -240,12 +232,6 @@ local function setup(settings)
 			model site { M = 0 NN = 0 }
 			model stratum { s = 0 g = 0 f = 0 da = 0 dgm = 0 ha = 0 hgm = 0 hdom = 0 t0 = 0 t13 = 0 }
 			model stratum_tree { s = 0 f = 0 d = 0 h = 0 g = 0 t0 = 0 t13 = 0 }
-		]]
-	end
-	if not cut then
-		data.define [[
-			macro var site npv'$_ = 0
-			model site RC = 0
 		]]
 	end
 end

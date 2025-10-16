@@ -13,6 +13,12 @@ return {
 		xdeciduous    = 9     -- lehtipuu
 	},
 
+	-- 9 -> 2 puulajikoodaus (havu/lehti)
+	spe2 = { 1, 1, 2, 2, 2, 2, 2, 1, 2 },
+
+	-- 9 -> 3 puulajikoodaus
+	spe3 = { 1, 2, 3, 3, 3, 3, 3, 1, 3 },
+
 	-- 9 -> 4 puulajikoodaus
 	spe4 = { 1, 2, 3, 4, 4, 4, 4, 1, 4 },
 

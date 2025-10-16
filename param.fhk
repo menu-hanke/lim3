@@ -1,0 +1,112 @@
+# logging costs (mela: LOGGING_COSTS)
+model site {
+
+	# 1. manual felling (€/hour)
+	p_chmanu = 24.40
+
+	# 2. mechanized felling (€/hour)
+	p_chmoto = 92.0
+
+	# 3. forest haulage (€/hour)
+	p_chhaul = 65.0
+
+	# 4. supervision (€/hour)
+	p_chadmi = 19.45
+
+	# 5. organization costs (€/m^2)
+	p_chorg = 0
+
+	# 6. machine transfer costs (€/stand)
+	p_chmachine = 0
+
+}
+
+# energywood logging costs (mela: ENERGYWOOD_LOGGING_COSTS)
+model site {
+
+	# 1. mechanized energy wood felling with harvester (€/hour)
+	p_ceharv = 95.0
+
+	# 2. manual energy wood felling (€/hour)
+	p_cemanu = 24.40
+
+	# 3. mechanized energy wood felling with harwarder (€/hour)
+	p_ceharw = 95.0
+
+	# 4. energy wood forest haulage with forwarder (€/hour)
+	p_cehfor = 68.0
+
+	# 5. bundler (baling the logging residues) (€/hour)
+	p_cebundler = 95.0
+
+	# 6. stump lifting with excavator (€/hour)
+	p_ceslift = 68.0
+
+	# 7. terrain chipper (€/hour)
+	p_cetchip = 118.0
+
+	# 8. mobile chippers at the road-side landing (€/hour)
+	p_cemchip = 173.0
+
+	# 9. fixed stationary crusher (€/m^3)
+	p_cestcrush = 2.80
+
+	# 10. compensation of felling logging residues in to piles (€/m^3)
+	p_cepilecomp = 0.30
+
+	# 11. organizational costs (€/m^3)
+	p_ceorg = 0.0
+
+	# 12. machine transfer costs (€/stand)
+	p_cemachine = 0.0
+
+	# 13. long-distance transport with trucks (€/hour)
+	p_cetruck = 90.0
+
+	# 14. cost of loading and unloading trucks (€/hour)
+	p_cetruckload = 60.0
+
+}
+
+# energywood selection (mela: ENERGYWOOD_LOGGING)
+model tree {
+
+	p_ewdmin = 4
+	p_ewdmax = 9.99
+	p_isew = site.p_bewtag >= 4 and d >= p_ewdmin and d <= p_ewdmax
+
+	p_ewkdmin = 25/1.33
+	p_isewk = (site.p_bewtag=1 or site.p_bewtag=3) and d >= p_ewkdmin
+
+	# 27. proportion of logging residue collected as energy wood
+	p_ewresp = 0.7
+
+	# 28. proportion of stumps lifted
+	p_ewstumpp = 0.85
+
+	# 29. logging residue harvesting method (0-3, see MELA2016 pp. 105-106)
+	p_ewresm = 0
+
+}
+
+# natural processes (mela: EVENT_CALL 1)
+model site {}
+
+# cuttings (mela: EVENT_CALL 2)
+model site {
+
+	# cutting type 1-6 (see MELA2016 p. 130)
+	p_btag = 0
+	p_biscc = p_btag=1
+	p_bisrenew = p_btag=2 or p_btag=5 or p_btag=6
+
+	# energywood collection method (x.0-x.9, see MELA2016 pp.130-131)
+	p_bewtag = 0
+
+	# 14. logging method (1->moto, 2->manual, 0->cheapest)
+	p_bcme = 0
+
+	# 15. is logging performed by a professional?
+	p_bprofe = true
+
+}

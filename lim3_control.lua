@@ -19,7 +19,7 @@ driver = control.dynamic(function()
 	local nextyear = periods[period]
 	if not nextyear then
 		if report_leaf then
-			report_leaf(worker_id()*2^24 + node)
+			report_leaf(control.worker()*2^24 + node)
 		end
 		return control.nothing
 	elseif year < nextyear then
@@ -28,7 +28,7 @@ driver = control.dynamic(function()
 	else
 		if report_node then
 			node = node+1
-			report_node(worker_id()*2^24 + node)
+			report_node(control.worker()*2^24 + node)
 		end
 		setperiod(period+1)
 		return driver
@@ -51,7 +51,7 @@ local function setup(settings)
 	if settings.events then
 		for _,e in ipairs(settings.events) do
 			-- TODO: m3 should handle string inside instruction
-			local get = data.transaction():read(e.when)
+			local get = data.transaction():read(string.format("site._'{%s}", e.when))
 			local event = control.all { function() if not get() then return false end end, e.action }
 			table.insert(events, (e.branch == false and control.try or control.optional)(event))
 		end

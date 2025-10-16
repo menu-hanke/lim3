@@ -1,0 +1,81 @@
+# ---- Natural processes -------------------------------------------------------
+
+model tree {
+	grow'd = d + id5*query.step/5
+	grow'h = h + ih5*query.step/5
+	grow'f = f * sp5^(query.step/5)
+}
+
+# ---- Tree selection ----------------------------------------------------------
+
+# parameters:
+#   select_var: selection variable
+#   select_target: how much to select
+#   select_profile: selection priority curve
+
+# defaults
+model tree select_var = 0
+model stratum_tree select_var = 0
+model site select_target = 1/0
+model site select_profile = []
+
+model site tree.select_f, stratum_tree.select_f[::] = call Lua ["metsi.thin":"sele"] (
+	select_profile,
+	select_target,
+	[..tree.d, ..stratum_tree.d[::]],
+	[..tree.f, ..stratum_tree.f[::]],
+	[..tree.select_var, ..stratum_tree.select_var[::]],
+	out[N],
+	out[NN]
+)
+
+model stratum select_f = sum(stratum_tree.select_f)
+
+# TODO: useampi valintajoukko -> peräkkäiset valintakutsut (parametrina miten paljon on jo valittu)
+
+# ---- Cutting instructions ----------------------------------------------------
+
+model site {
+
+	cc_d0, cc_a0 = call Table ["data/cc.csv"] (kmty4(mty), kspe4(sdom), out, out)
+
+	fth_f1 = call Table ["data/fth.csv"] (kmty4(mty), kspe4(sdom), out)
+
+	th_g0, th_g1 = call Table ["data/thin.csv"] (
+		kalr2(alr),
+		kmty4(mty),
+		kspe4(sdom),
+		hdom: interpolate,
+		out,
+		out
+	)
+
+}
+
+# ---- Planting instructions ---------------------------------------------------
+
+# parameters:
+#   site.plant'{tree.$x}: initial value for planted trees
+#   site.plant'{stratum.$x}: initial value for planted strata
+
+func rlv_f(s) = call Table["data/rlv.csv"] (kmty4(site.mty), kspe4(s), out)
+
+# defaults (tree level planting)
+model site {
+	plant'{tree.s} = query.plant_s
+	plant'{tree.t0} = year
+	plant'{tree.t13} = year
+	plant'{tree.snt} = 3
+	plant'{tree.f} = rlv_f(plant'{tree.s}) / query.plant_N
+	plant'{tree.d} = 0
+	plant'{tree.h} = 0.3
+}
+
+# defaults (stratum level planting)
+model site {
+	plant'{stratum.s} = query.plant_s
+	plant'{stratum.t0} = year
+	plant'{stratum.snt} = 3
+	plant'{stratum.f} = rlv_f(plant'{stratum.s}) / query.plant_N
+	plant'{stratum.hgm} = 0.3
+}

@@ -1,9 +1,14 @@
--- Crown ratio based biomass models.
+local coding = require "metsi.coding"
+local spe3 = coding.spe3
+local dkan = require "metsi.dkan"
+local PINE, SPRUCE, XCONIFER = coding.spe.pine, coding.spe.spruce, coding.spe.xconiferous
+local dk = dkan.dk
+local exp, log = math.exp, math.log
+
+-- Crown ratio based biomass (kg) models.
 -- Repola J. (2013). Modelling tree biomasses in Finland
 -- Repola J. (2009) Silva Fennica 43(4) Biomass equations for Scots pine and Norway spruce in Finland
 -- Repola J. (2008) Silva Fennica 42(4) Biomass equations for birch in Finland
-
-local exp, log = math.exp, math.log
 
 local function bm_stem_pine(dk, h, a13)
 	return exp(
@@ -33,6 +38,16 @@ local function bm_stem_birch(d, dk, h, a13)
 	)
 end
 
+local function bm_stem(s, d, h, a13)
+	if s == PINE or s == XCONIFER then
+		return bm_stem_pine(dk(d), h, a13)
+	elseif s == SPRUCE then
+		return bm_stem_spruce(dk(d), h, a13)
+	else
+		return bm_stem_birch(d, dk(d), h, a13)
+	end
+end
+
 local function bm_bark_pine(dk, h)
 	return exp(
 		-4.695 + (0.014 + 0.057) / 2
@@ -55,6 +70,16 @@ local function bm_bark_birch(dk, h)
 		+ 10.121 * (dk / (dk + 12))
 		+ 2.647 * (h / (h + 20))
 	)
+end
+
+local function bm_bark(s, dk, h)
+	if s == PINE or s == XCONIFER then
+		return bm_bark_pine(dk, h)
+	elseif s == SPRUCE then
+		return bm_bark_spruce(dk, h)
+	else
+		return bm_bark_birch(dk, h)
+	end
 end
 
 local function bm_live_branches_pine(dk, h, cl)
@@ -84,6 +109,16 @@ local function bm_live_branches_birch(dk, h, cl)
 	)
 end
 
+local function bm_live_branches(s, dk, h, cl)
+	if s == PINE or s == XCONIFER then
+		return bm_live_branches_pine(dk, h, cl)
+	elseif s == SPRUCE then
+		return bm_live_branches_spruce(dk, h, cl)
+	else
+		return bm_live_branches_birch(dk, h, cl)
+	end
+end
+
 local function bm_dead_branches_pine(dk)
 	return 0.913 * exp(
 		-5.318
@@ -104,6 +139,16 @@ local function bm_dead_branches_birch(dk)
 		-7.996
 		+ 11.824 * (dk / (dk + 16))
 	)
+end
+
+local function bm_dead_branches(s, dk, h)
+	if s == PINE or s == XCONIFER then
+		return bm_dead_branches_pine(dk)
+	elseif s == SPRUCE then
+		return bm_dead_branches_spruce(dk, h)
+	else
+		return bm_dead_branches_pine(dk)
+	end
 end
 
 local function bm_foliage_pine(dk, h, cl)
@@ -132,6 +177,16 @@ local function bm_foliage_birch(dk, cr)
 	)
 end
 
+local function bm_foliage(s, dk, h, cr)
+	if s == PINE or s == XCONIFER then
+		return bm_foliage_pine(dk, h, h*cr)
+	elseif s == SPRUCE then
+		return bm_foliage_spruce(dk, h, h*cr)
+	else
+		return bm_foliage_birch(dk, cr)
+	end
+end
+
 local function bm_stump_pine(dk)
 	return exp(
 		-6.753 + (0.010 + 0.044) / 2
@@ -152,6 +207,39 @@ local function bm_stump_birch(dk)
 		+ 11.304 * (dk / (dk + 26))
 	)
 end
+
+local function bm_stump(s, dk)
+	if s == PINE or s == XCONIFER then
+		return bm_stump_pine(dk)
+	elseif s == SPRUCE then
+		return bm_stump_spruce(dk)
+	else
+		return bm_stump_birch(dk)
+	end
+end
+
+local KBM_STEM = { 0.0713665, 0.0375791, 0.0331816 }
+local KBM_BARK = { 0.0252702, 0.0290572, 0.018252 }
+local KBM_LIVE_BRANCHES = { 0.0171922, 0.0688421, 0.0339913 }
+local KBM_DEAD_BRANCHES = { 0.0121725, 0.0115778, 0.0022271 }
+local KBM_FOLIAGE = { 0.0210926, 0.0472377, 0.0007411 }
+local KBM_STUMP = { 0.00621616, 0.0376811, 0.0524023 }
+
+local function bm_small(kx, s, h)
+	if s == XCONIFER then
+		s = PINE
+	elseif s > 3 then
+		s = 3
+	end
+	return h * kx[s]
+end
+
+local function bm_stem_small(s, h) return bm_small(KBM_STEM, s, h) end
+local function bm_bark_small(s, h) return bm_small(KBM_BARK, s, h) end
+local function bm_live_branches_small(s, h) return bm_small(KBM_LIVE_BRANCHES, s, h) end
+local function bm_dead_branches_small(s, h) return bm_small(KBM_DEAD_BRANCHES, s, h) end
+local function bm_foliage_small(s, h) return bm_small(KBM_FOLIAGE, s, h) end
+local function bm_stump_small(s, h) return bm_small(KBM_STUMP, s, h) end
 
 -- code to precompute small tree biomass:
 -- local d, dk, h, a13, cl, cr = 0.1, 2.125, 1.3, 1, 1.1, 1.1/1.3
@@ -174,23 +262,48 @@ end
 -- print(string.format("bm_stump = h*%g where spe=~spe'spruce", bm_stump_spruce(dk)/1.3))
 -- print(string.format("bm_stump = h*%g", bm_stump_birch(dk)/1.3))
 
+local XBMR5 = {
+	{13.2902, -6.3413, 9},
+	{13.3703, -6.3851, 8},
+	{13.2902, -6.3413, 9}
+}
+
+-- biomass of roots >5cm. where is this model from?
+local function bm_roots5(s, d)
+	local b = XBMR5[spe3[s]]
+	return exp(b[1]*d/(d+b[3])+b[2])
+end
+
 return {
 	bm_stem_pine            = bm_stem_pine,
 	bm_stem_spruce          = bm_stem_spruce,
 	bm_stem_birch           = bm_stem_birch,
+	bm_stem                 = bm_stem,
+	bm_stem_small           = bm_stem_small,
 	bm_bark_pine            = bm_bark_pine,
 	bm_bark_spruce          = bm_bark_spruce,
 	bm_bark_birch           = bm_bark_birch,
+	bm_bark                 = bm_bark,
+	bm_bark_small           = bm_bark_small,
 	bm_live_branches_pine   = bm_live_branches_pine,
 	bm_live_branches_spruce = bm_live_branches_spruce,
 	bm_live_branches_birch  = bm_live_branches_birch,
+	bm_live_branches        = bm_live_branches,
+	bm_live_branches_small  = bm_live_branches_small,
 	bm_dead_branches_pine   = bm_dead_branches_pine,
 	bm_dead_branches_spruce = bm_dead_branches_spruce,
 	bm_dead_branches_birch  = bm_dead_branches_birch,
+	bm_dead_branches        = bm_dead_branches,
+	bm_dead_branches_small  = bm_dead_branches_small,
 	bm_foliage_pine         = bm_foliage_pine,
 	bm_foliage_spruce       = bm_foliage_spruce,
 	bm_foliage_birch        = bm_foliage_birch,
+	bm_foliage              = bm_foliage,
+	bm_foliage_small        = bm_foliage_small,
 	bm_stump_pine           = bm_stump_pine,
 	bm_stump_spruce         = bm_stump_spruce,
-	bm_stump_birch          = bm_stump_birch
+	bm_stump_birch          = bm_stump_birch,
+	bm_stump                = bm_stump,
+	bm_stump_small          = bm_stump_small,
+	bm_roots5               = bm_roots5
 }
