@@ -68,7 +68,7 @@ local function setup(settings)
 		report_node = data.transaction()
 		if settings.output == "console" then
 			report_node:call(console_node, period, tables)
-		else
+		elseif settings.output ~= false then
 			report_node:set(prevnode, data.arg(1))
 			for tab,fs in pairs(tables) do
 				local rep = { id = data.arg(1), parent = prevnode }
@@ -90,7 +90,7 @@ local function setup(settings)
 		report_leaf = data.transaction()
 		if settings.output == "console" then
 			report_leaf:call(console_node, period, tables)
-		else
+		elseif settings.output ~= false then
 			for tab,fs in pairs(tables) do
 				local rep = {}
 				if settings.nodes then rep.parent = data.arg(1) end
