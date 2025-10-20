@@ -58,12 +58,12 @@ model tree {
 	h_ev_foliage = 0
 
 	# TODO: kantojen nosto uudistushakkuussa
-	h_ev_stump = p_ewstumpp * p1_stump * bm_stump
+	h_ev_stump = site.p_ewstumpp * p1_stump * bm_stump
 		where (site.p_bewtag=2 or site.p_bewtag=3) and p_isewk
 	h_ev_stump = 0
 
 	# TODO: kantojen nosto uudistushakkuussa
-	h_ev_roots = p_ewstumpp * p1_roots * bm_roots5
+	h_ev_roots = site.p_ewstumpp * p1_roots * bm_roots5
 		where (site.p_bewtag=2 or site.p_bewtag=3) and p_isewk
 	h_ev_roots = 0
 }
@@ -218,7 +218,10 @@ model site {
 		hdist,
 		p_cehfor,
 		p_cebundler,
-		h_cemachine
+		h_cemachine,
+		p_ewresm = 0 or p_ewresm = 1,
+		p_ewresm = 0 or p_ewresm = 2,
+		p_ewresm = 0 or p_ewresm = 3
 	)
 
 	# kannonnoston kokonaissiirtymisaika (h/ha)
@@ -277,7 +280,7 @@ macro var site h_RE'$filter   = h_sumE'{h_ev_stem+h_ev_branch+h_ev_foliage+h_ev_
 macro var site h_REt'$filter  = h_sumE'{h_ev_stem+h_ev_branch+h_ev_foliage where $filter}
 macro var site h_RErw'$filter = h_sumE'{v_saw+v_pulp where $filter}
 macro var site h_REst'$filter = h_sumE'{h_ev_stem where $filter}
-macro var site h_REbr'$filter = h_sumE'{h_ev_branchl+h_ev_branchd where $filter}
+macro var site h_REbr'$filter = h_sumE'{h_ev_branch where $filter}
 macro var site h_REfo'$filter = h_sumE'{h_ev_foliage where $filter}
 macro var site h_REsp'$filter = h_sumE'{h_ev_stump where $filter}
 macro var site h_REro'$filter = h_sumE'{h_ev_roots where $filter}

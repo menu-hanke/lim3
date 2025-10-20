@@ -81,6 +81,10 @@ model tree {
 	# 27. proportion of logging residue collected as energy wood
 	p_ewresp = 0.7
 
+}
+
+model site {
+
 	# 28. proportion of stumps lifted
 	p_ewstumpp = 0.85
 
