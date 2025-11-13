@@ -35,8 +35,6 @@ driver = control.dynamic(function()
 	end
 end)
 
-local events = control.all {}
-step = control.all { events, driver }
 control.simulate = driver
 
 local function console_node(period, node)
@@ -48,14 +46,7 @@ local function console_node(period, node)
 end
 
 local function setup(settings)
-	if settings.events then
-		for _,e in ipairs(settings.events) do
-			-- TODO: m3 should handle string inside instruction
-			local get = data.transaction():read(string.format("site._'{%s}", e.when))
-			local event = control.all { function() if not get() then return false end end, e.action }
-			table.insert(events, (e.branch == false and control.try or control.optional)(event))
-		end
-	end
+	step = control.all { settings.events or control.nothing, driver }
 	if settings.nodes then
 		local tables = {}
 		for k,v in pairs(settings.nodes) do
