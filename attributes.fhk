@@ -2,11 +2,6 @@
 
 model site {
 
-	dg = sum(tree.f * tree.d^3) / sum(tree.f * tree.d^2)
-	hg = sum(tree.f * tree.h * tree.d^2) / sum(tree.f * tree.d^2)
-	ag = (sum(tree.f * tree.a * tree.g) + sum(stratum.f * stratum.a * stratum.g))
-		/ (sum(tree.f * tree.g) + sum(stratum.f * stratum.g))
-
 	tkg = call Lua ["metsi.site":"tkg"] (mty, alr, 0)
 
 	# TODO: terrain class
@@ -22,8 +17,12 @@ model site {
 
 }
 
+# TODO: most of these aggregates should also take saplings (strata) into account
+macro var site D2'$filter = sumT'(f*d^2 where $filter)
+macro var site dg'$filter = sumT'(f*d^3 where $filter) / D2'{$filter}
+macro var site hg'$filter = sumT'(f*h*d^2 where $filter) / D2'{$filter}
+macro var site ag'$filter = sumT'(f*a*d^2 where $filter) / D2'{$filter}
 macro var site F'$filter = sumT'(f where $filter)
-# TODO: G should take saplings into account (maybe?)
 macro var site G'$filter = sumT'(f*g where $filter)
 macro var site V'$filter = sumT'(f*v where $filter)
 macro var site rdf'$filter = sumT'(ccf where $filter)
