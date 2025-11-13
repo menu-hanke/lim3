@@ -6,32 +6,9 @@ model tree {
 	grow'f = f * sp5^(query.step/5)
 }
 
-# ---- Tree selection ----------------------------------------------------------
+# ---- Management --------------------------------------------------------------
 
-# parameters:
-#   select_var: selection variable
-#   select_target: how much to select
-#   select_profile: selection priority curve
-
-# defaults
-model tree select_var = 0
-model stratum_tree select_var = 0
-model site select_target = 1/0
-model site select_profile = []
-
-model site tree.select_f, stratum_tree.select_f[::] = call Lua ["metsi.thin":"sele"] (
-	select_profile,
-	select_target,
-	[..tree.d, ..stratum_tree.d[::]],
-	[..tree.f, ..stratum_tree.f[::]],
-	[..tree.select_var, ..stratum_tree.select_var[::]],
-	out[N],
-	out[NN]
-)
-
-model stratum select_f = sum(stratum_tree.select_f)
-
-# TODO: useampi valintajoukko -> peräkkäiset valintakutsut (parametrina miten paljon on jo valittu)
+model tree default'mc = 0
 
 # ---- Cutting instructions ----------------------------------------------------
 

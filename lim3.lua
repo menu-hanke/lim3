@@ -29,7 +29,9 @@ end
 return {
 	setup    = setup,
 	np       = op.np,
-	thinning = op.thinning,
-	clearcut = op.clearcut,
+	wrap     = op.wrap,
+	selector = op.selector,
+	cutting  = op.cutting,
+	split    = op.split,
 	planting = op.planting
 }
