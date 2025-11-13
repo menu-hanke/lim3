@@ -269,6 +269,9 @@ macro var site h_sumE'{$expr where $filter} = area * sum(
 	tree._'{w*($expr)}[which(tree._'{h_isenergy and ($filter)})])
 macro var site h_sumE'{$expr where} = area * sum(tree._'{w*($expr)}[h_energy])
 
+# kokonaispoistuma
+macro var site h_F'$filter    = area * sumT'w
+
 # ainespuukertymät (m^3)
 macro var site h_RL'$filter   = h_sumT'{v_saw where $filter}
 macro var site h_RP'$filter   = h_sumT'{v_pulp where $filter}
@@ -284,6 +287,8 @@ macro var site h_REbr'$filter = h_sumE'{h_ev_branch where $filter}
 macro var site h_REfo'$filter = h_sumE'{h_ev_foliage where $filter}
 macro var site h_REsp'$filter = h_sumE'{h_ev_stump where $filter}
 macro var site h_REro'$filter = h_sumE'{h_ev_roots where $filter}
+macro var site h_REcr'$filter = h_REbr'{$filter} + h_REfo'{$filter}
+macro var site h_REsr'$filter = h_REsp'{$filter} + h_REro'{$filter}
 
 # ainespuun korjuukustannukset (€)
 model site h_WC = area * (h_cmoto + h_chaul + h_cadmi + h_corg)
