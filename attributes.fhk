@@ -65,7 +65,7 @@ model tree {
 	birch = s=~spe'silver_birch or s=~spe'downy_birch
 
 	# basal area (m^2)
-	g = (~pi/4)/10000 * d^2
+	g = ~pi*0.000025 * d^2
 
 	a = site.year - t0
 	a13 = site.year - t13
@@ -144,7 +144,7 @@ model stratum_tree {
 	s = stratum.s
 	t0 = stratum.t0
 	t13 = t0+10  # TODO how to compute this??
-	g = (~pi/4)/10000 * d^2
+	g = ~pi*0.000025 * d^2
 
 }
 
