@@ -1,3 +1,4 @@
 *.so
 *.dll
 .gdb_history
+*.sqlite3
