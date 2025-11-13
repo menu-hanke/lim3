@@ -36,6 +36,8 @@ model site {
 # dominant trees
 model site {
 	sdom = call Lua ["metsi.site":"spedom"] (tree.s, tree.g)
+	# TODO: tämän pitäisi valita kasvupaikalle sopiva oletusarvo jos sdom=0
+	sdomx = max(sdom, 1)
 	hdom = call Lua ["metsi.site":"xdoma"] (tree.h, tree.f, tree.order2'{d, h})
 	ddom = call Lua ["metsi.site":"xdoma"] (tree.d, tree.f, tree.order2'{d, h})
 	hdomj = hdom # TODO

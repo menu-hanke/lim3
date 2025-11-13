@@ -74,6 +74,10 @@ macro var site sumS'$expr = sumS'{$expr where}
 
 macro var site sum'$expr = sumT'{$expr} + sumS'{$expr}
 
+# is it coniferous/deciduous
+func isconif(s) = any(s<=2, s=8)
+func isdecid(s) = not isconif(s)
+
 # 1: pine/conifer, 2: spruce, 3: deciduous
 func kspe3(s) = call Table [
 	0,                 1 # default pine when spe=0 (e.g. treeless site)
@@ -103,20 +107,7 @@ func kspe4(s) = call Table [
 ] (s, out)
 
 # 1: OMaT/OMT, 2: MT, 3: VT, 4: ClT or worse
-func kmty4(mty) = call Table [
-	~mty'OMaT, 1
-	~mty'OMT,  1
-	~mty'MT,   2
-	~mty'VT,   3
-	~mty'CT,   4
-	~mty'ClT,  4
-	~mty'ROCK, 4
-	~mty'MTN,  4
-] (mty, out)
-
-# TODO: select-optimoinnin jälkeen muuta nämä muotoon:
-# func kmty4(mty) = select(mty-1, 1, 1, 2, 3, 4, 4, 4, 4)
-# (select kutsuu sisäisesti lang-dataa jos kaikki parametrit on vakioita)
+func kmty4(mty) = min(max(1, mty-1), 4)
 
 # 1: mineral soil, 2: peat
-func kalr2(alr) = select(alr=1, 1, 2)
+func kalr2(alr) = min(alr, 2)

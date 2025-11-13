@@ -37,14 +37,15 @@ model stratum select_f = sum(stratum_tree.select_f)
 
 model site {
 
-	cc_d0, cc_a0 = call Table ["data/cc.csv"] (kmty4(mty), kspe4(sdom), out, out)
+	mh_regeneration_d0, mh_regeneration_a0 = call Table ["data/mh_regeneration_ad0.csv"]
+		(kmty4(mty), kspe4(sdomx), out, out)
 
-	fth_f1 = call Table ["data/fth.csv"] (kmty4(mty), kspe4(sdom), out)
+	mh_first_thinning_f1 = call Table ["data/mh_first_thinning_f1.csv"] (kmty4(mty), kspe4(sdomx), out)
 
-	th_g0, th_g1 = call Table ["data/thin.csv"] (
+	mh_thinning_g0, mh_thinning_g1 = call Table ["data/mh_thinning.csv"] (
 		kalr2(alr),
 		kmty4(mty),
-		kspe4(sdom),
+		kspe4(sdomx),
 		hdom: interpolate,
 		out,
 		out
@@ -58,7 +59,16 @@ model site {
 #   site.plant'{tree.$x}: initial value for planted trees
 #   site.plant'{stratum.$x}: initial value for planted strata
 
-func rlv_f(s) = call Table["data/rlv.csv"] (kmty4(site.mty), kspe4(s), out)
+func rlv_f(s) = call Table ["data/mh_regeneration_f1.csv"] (kmty4(site.mty), kspe4(s), out)
+func flu_f(s) = call Table ["data/mh_retention_f1.csv"] (site.mty, kspe4(s), out)
+func rlt_f(s) = select(isconif(s), 1500, 1100)
+
+model site {
+	mh_regeneration_f0 = select(hdom>=5, 500, 600)
+	mh_regeneration_f1 = rlv_f(sdomx)
+	mh_retention_f1 = flu_f(sdomx)
+	mh_supplant_f0 = rlt_f(sdomx)
+}
 
 # defaults (tree level planting)
 model site {
