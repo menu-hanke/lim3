@@ -28,6 +28,7 @@ end
 
 return {
 	setup    = setup,
+	trace    = ctr.trace,
 	np       = op.np,
 	wrap     = op.wrap,
 	selector = op.selector,
