@@ -73,10 +73,12 @@ model tree {
 
 	p_ewdmin = 4
 	p_ewdmax = 9.99
-	p_isew = site.p_bewtag >= 4 and d >= p_ewdmin and d <= p_ewdmax
+
+	p_isew = d >= p_ewdmin where site.p_bewtag >= 7 or all(s>=6, s!=8)
+	p_isew = all(site.p_bewtag >= 4, d >= p_ewdmin, d <= p_ewdmax)
 
 	p_ewkdmin = 25/1.33
-	p_isewk = (site.p_bewtag=1 or site.p_bewtag=3) and d >= p_ewkdmin
+	p_isewk = any(site.p_bewtag=1, site.p_bewtag=3) and d >= p_ewkdmin
 
 	# 27. proportion of logging residue collected as energy wood
 	p_ewresp = 0.7
