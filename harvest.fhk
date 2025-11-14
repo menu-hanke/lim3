@@ -294,6 +294,7 @@ macro var site h_REsr'$filter = h_REsp'{$filter} + h_REro'{$filter}
 model site h_WC = area * (h_cmoto + h_chaul + h_cadmi + h_corg)
 
 # energiapuun korjuukustannukset (€)
+model site h_WEc = 0 where len(h_energy) = 0
 model site h_WEc = area * (h_cene1 + h_cene2 + h_cene3 + h_cene4 + h_ceadmi + h_ceorg)
 
 # bruttotulot tienvarsihinnoin (€)
