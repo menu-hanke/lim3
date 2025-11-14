@@ -104,8 +104,25 @@ model tree {
 macro var tree rdfL'$filter = sumL'(ccf where $filter)
 macro var tree baL'$filter = sumL'(f*g where $filter)
 
-# volume (m^3)
-model tree v, v_saw, v_pulp, v_waste = call Lua ["metsi.vol":"vol"] (s, d, h)
+# volume and value
+model tree {
+
+	# volume (m^3)
+	v, v_saw, v_pulp, v_waste = call Lua ["metsi.vol":"vol"] (s, d, h)
+
+	# shape-based sawlog value adjustment
+	vadjs = call Table ["data/arsu.csv"] (kspe3(s), d: interpolate, h: interpolate, out)
+
+	# sawlog and pulpwood roadside value (€/m^3)
+	value1_saw, value1_pulp = call Table ["data/tvh.csv"] (s, out, out)
+
+	# table-based value (€)
+	value_t = value1_saw*v_saw*vadjs + value1_pulp*v_pulp
+
+	# optimization-based based maximum value (€)
+	value_cc = call Lua ["metsi.crosscut":"val"](s, d, h)
+
+}
 
 # small tree biomass models (kg)
 # Repola (2008, 2009)

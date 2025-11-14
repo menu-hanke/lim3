@@ -3,7 +3,6 @@ local buffer = require "string.buffer"
 
 data.include "def.fhk"
 data.include "attributes.fhk"
-data.include "eco.fhk"
 data.include "harvest.fhk"
 data.include "op.fhk"
 data.include "param.fhk"

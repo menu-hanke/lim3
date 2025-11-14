@@ -295,3 +295,12 @@ model site h_WC = area * (h_cmoto + h_chaul + h_cadmi + h_corg)
 
 # energiapuun korjuukustannukset (€)
 model site h_WEc = area * (h_cene1 + h_cene2 + h_cene3 + h_cene4 + h_ceadmi + h_ceorg)
+
+# bruttotulot tienvarsihinnoin (€)
+# TODO: tästä puuttuu hakkuuhävikki (apu) ja energiatulot (esumt)
+model site h_U = area * sum(tree.f * tree.value_t)
+
+# nettotulot tienvarsihinnoin (€)
+# TODO: melan kaava NU = U - WC - WE - apu_cae,
+# missä apu_cae = craivuu + ecmuok  (jotka ei mukana WC:ssä eikä WE:ssä)
+model site h_NU = h_U - h_WC - h_WEc
