@@ -103,8 +103,7 @@ model site {
 
 	# cutting type 1-6 (see MELA2016 p. 130)
 	p_btag = 0
-	p_biscc = p_btag=1
-	p_bisrenew = p_btag=2 or p_btag=5 or p_btag=6
+	p_bisrenew = any(p_btag=2, p_btag>=5)
 
 	# energywood collection method (x.0-x.9, see MELA2016 pp.130-131)
 	p_bewtag = 0
