@@ -270,7 +270,7 @@ macro var site h_sumE'{$expr where $filter} = area * sum(
 macro var site h_sumE'{$expr where} = area * sum(tree._'{w*($expr)}[h_energy])
 
 # kokonaispoistuma
-macro var site h_F'$filter    = area * sumT'w
+macro var site h_F'$filter    = area * sumT'{w where $filter}
 
 # ainespuukertymät (m^3)
 macro var site h_RL'$filter   = h_sumT'{v_saw where $filter}
