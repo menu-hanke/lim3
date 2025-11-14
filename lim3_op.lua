@@ -354,8 +354,16 @@ local getcut = lazy(function()
 		})
 end)
 
-local function cutting()
-	return wrap(getcut())
+local function cutting(...)
+	local cut
+	if select("#", ...) > 0 then
+		cut = {...}
+		table.insert(cut, getcut())
+		cut = control.all(cut)
+	else
+		cut = getcut()
+	end
+	return wrap(cut)
 end
 
 ---- Splitting -----------------------------------------------------------------
