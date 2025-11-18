@@ -35,8 +35,6 @@ driver = control.dynamic(function()
 	end
 end)
 
-control.simulate = driver
-
 ---- Debugging -----------------------------------------------------------------
 
 local function console_node(period, node)
@@ -90,6 +88,7 @@ end
 
 local function setup(settings)
 	step = control.all { settings.events or control.nothing, driver }
+	control.simulate = step
 	if settings.nodes then
 		local tables = {}
 		for k,v in pairs(settings.nodes) do
