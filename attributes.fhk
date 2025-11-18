@@ -18,13 +18,15 @@ model site {
 }
 
 # TODO: most of these aggregates should also take saplings (strata) into account
+macro var site F'$filter = sumT'(f where $filter)
+macro var site G'$filter = sumT'(f*g where $filter)
+macro var site V'$filter = sumT'(f*v where $filter)
 macro var site D2'$filter = sumT'(f*d^2 where $filter)
 macro var site dg'$filter = sumT'(f*d^3 where $filter) / D2'{$filter}
 macro var site hg'$filter = sumT'(f*h*d^2 where $filter) / D2'{$filter}
 macro var site ag'$filter = sumT'(f*a*d^2 where $filter) / D2'{$filter}
-macro var site F'$filter = sumT'(f where $filter)
-macro var site G'$filter = sumT'(f*g where $filter)
-macro var site V'$filter = sumT'(f*v where $filter)
+macro var site da'$filter = sumT'(f*d where $filter) / F'{$filter}
+macro var site ha'$filter = sumT'(f*h where $filter) / F'{$filter}
 macro var site rdf'$filter = sumT'(ccf where $filter)
 
 # stories
