@@ -30,39 +30,5 @@ model site {
 
 }
 
-# ---- Planting instructions ---------------------------------------------------
 
-# parameters:
-#   site.plant'{tree.$x}: initial value for planted trees
-#   site.plant'{stratum.$x}: initial value for planted strata
 
-func rlv_f(s) = call Table ["data/mh_regeneration_f1.csv"] (kmty4(site.mty), kspe4(s), out)
-func flu_f(s) = call Table ["data/mh_retention_f1.csv"] (site.mty, kspe4(s), out)
-func rlt_f(s) = select(isconif(s), 1500, 1100)
-
-model site {
-	mh_regeneration_f0 = select(hdom>=5, 500, 600)
-	mh_regeneration_f1 = rlv_f(sdomx)
-	mh_retention_f1 = flu_f(sdomx)
-	mh_supplant_f0 = rlt_f(sdomx)
-}
-
-# defaults (tree level planting)
-model site {
-	plant'{tree.s} = query.plant_s
-	plant'{tree.t0} = year
-	plant'{tree.t13} = year
-	plant'{tree.snt} = 3
-	plant'{tree.f} = rlv_f(plant'{tree.s}) / query.plant_N
-	plant'{tree.d} = 0
-	plant'{tree.h} = 0.3
-}
-
-# defaults (stratum level planting)
-model site {
-	plant'{stratum.s} = query.plant_s
-	plant'{stratum.t0} = year
-	plant'{stratum.snt} = 3
-	plant'{stratum.f} = rlv_f(plant'{stratum.s}) / query.plant_N
-	plant'{stratum.hgm} = 0.3
-}

@@ -27,12 +27,12 @@ local function setup(settings)
 end
 
 return {
-	setup    = setup,
-	trace    = ctr.trace,
-	np       = op.np,
-	wrap     = op.wrap,
-	selector = op.selector,
-	cutting  = op.cutting,
-	split    = op.split,
-	planting = op.planting
+	setup        = setup,
+	trace        = ctr.trace,
+	np           = op.np,
+	wrap         = op.wrap,
+	selector     = op.selector,
+	cutting      = op.cutting,
+	split        = op.split,
+	regeneration = op.regeneration,
 }

@@ -4,6 +4,7 @@ local buffer = require "string.buffer"
 data.include "def.fhk"
 data.include "attributes.fhk"
 data.include "harvest.fhk"
+data.include "regeneration.fhk"
 data.include "op.fhk"
 data.include "param.fhk"
 
@@ -340,14 +341,18 @@ end
 
 ---- Cutting -------------------------------------------------------------------
 
+local function prefixupdate(prefix)
+	return function(name)
+		local xvar = string.format("%s_%s", prefix, name)
+		if data.defined("site", xvar) then
+			return string.format("%s + %s", name, xvar)
+		end
+	end
+end
+
 local getcut = lazy(function()
 	return data.transaction()
-		:update("site", function(name)
-			local hvar = string.format("h_%s", name)
-			if data.defined("site", hvar) then
-				return string.format("%s + %s", name, hvar)
-			end
-		end)
+		:update("site", prefixupdate("h"))
 		:update("tree", {
 			f = "f - w",
 			w = 0
@@ -389,13 +394,13 @@ local function split(set)
 		end)
 end
 
----- Planting ------------------------------------------------------------------
+---- Regeneration --------------------------------------------------------------
 
-local function planting(prototype, plantlevel)
-	local s, N = assert(prototype.s, "missing planting species"), prototype.N
-	return wrap(data.transaction()
-		:bind("plant_s", s)
-		:bind("plant_N", N or 1)
+local function regeneration(prototype, plantlevel)
+	local s = assert(prototype.s, "missing planting species")
+	local op = wrap(data.transaction()
+		:bind("regeneration_species", s)
+		:update("site", prefixupdate("r"))
 		:insert(function(level, name)
 			if not plantlevel then
 				-- if early growth is enabled, default to stratum, otherwise trees
@@ -411,10 +416,14 @@ local function planting(prototype, plantlevel)
 			if prototype[name] then
 				return prototype[name]
 			end
-			if data.defined("site", string.format("plant'{%s.%s}", level, name)) then
-				return string.format("site.plant'{%s.%s}", level, name)
+			if data.defined("site", string.format("regen'{%s.%s}", level, name)) then
+				return string.format("site.regen'{%s.%s}", level, name)
 			end
 		end))
+		if prototype.N and prototype.N ~= 5 then
+			op:config("site", { p_dcount=prototype.N })
+		end
+		return op
 end
 
 --------------------------------------------------------------------------------
@@ -443,11 +452,11 @@ local function setup(settings)
 end
 
 return {
-	setup    = setup,
-	np       = np,
-	wrap     = wrap,
-	selector = selector,
-	cutting  = cutting,
-	split    = split,
-	planting = planting
+	setup        = setup,
+	np           = np,
+	wrap         = wrap,
+	selector     = selector,
+	cutting      = cutting,
+	split        = split,
+	regeneration = regeneration,
 }

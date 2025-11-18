@@ -1,0 +1,99 @@
+# ---- Metsänhoitosuositukset --------------------------------------------------
+
+func rlv_f(s) = call Table ["data/mh_regeneration_f1.csv"] (kmty4(site.mty), kspe4(s), out)
+func flu_f(s) = call Table ["data/mh_retention_f1.csv"] (site.mty, kspe4(s), out)
+func rlt_f(s) = select(isconif(s), 1500, 1100)
+
+model site {
+
+	# runkoluku ennen ja jälkeen uudistamista
+	mh_regeneration_f0 = select(hdom>=5, 500, 600)
+	mh_regeneration_f1 = rlv_f(sdomx)
+
+	# säästöpuiden määrä
+	mh_retention_f1 = flu_f(sdomx)
+
+	# täydennysistutusraja
+	mh_supplant_f0 = rlt_f(sdomx)
+
+	# viljeltävien puiden määrä
+	mh_cultivate_f = rlv_f(p_dspecies)
+
+}
+
+# ---- Oletusarvot uusille puille ----------------------------------------------
+
+# puutason viljely
+model site {
+	regen'{tree.s} = p_dspecies
+	regen'{tree.t0} = year
+	regen'{tree.t13} = year
+	regen'{tree.snt} = p_dtag
+	regen'{tree.f} = p_dF / p_dcount
+	regen'{tree.d} = 0
+	regen'{tree.h} = 0.3
+}
+
+# ositetason viljely
+model site {
+	regen'{stratum.s} = p_dspecies
+	regen'{stratum.t0} = year
+	regen'{stratum.snt} = p_dtag
+	regen'{stratum.f} = p_dF / p_dcount
+	regen'{stratum.hgm} = 0.3
+}
+
+# ---- Kustannukset ja ajanmenekit ---------------------------------------------
+
+# TODO: ruohouksen tarve (satunnaistus puuttuu)
+model site r_rkus = 0
+
+# materiaalikustannukset (€/ha)
+model site {
+	r_xmcost = p_cseed where p_dtag=1
+	r_xmcost = p_dF * p_cseedling
+}
+
+# työn ajanmenekit (h/ha)
+model site {
+	r_tcon_plting = p_dF * call Lua ["metsi.plting":"plting"] (p_dspecies, mty, verlt, p_dtag, hdist)
+	r_tc, r_tc1 = call Lua ["metsi.scarif":"scarif"] (area, alr, tc, 0)
+}
+
+# työkustannukset (€/ha)
+model site {
+	r_wcost = 0.25 * p_cregenarea * r_tc1 where p_dtag=1 and when'soilprep > when'regen
+	r_wcost = p_csupdrain * r_tcon_plting
+}
+
+# suunnittelun ajanmenekki (h/ha)
+model site r_tadm = p_tregen * c_travel
+
+# suunnittelukustannukset (€/ha)
+model site r_cadm = p_cwork * r_tadm
+
+# ---- Maapinnan käsittely (tpf) -----------------------------------------------
+
+model site {
+	# jos tulkitsin oikein niin aina laji=1 (satunnaistus ei tee mitään)
+	sp_tc, sp_tc1 = call Lua ["metsi.scarif":"scarif"] (area, alr, tc, 1)
+	sp_wcost = p_cscarif
+}
+
+# ---- Keruumuuttujat ----------------------------------------------------------
+
+model site {
+
+	# viljelykustannus (€)
+	r_WRA = area * (r_rkus + r_xmcost + r_wcost + r_cadm)
+
+	# nettotulot (€)
+	r_NU = -r_WRA
+
+	# maanpinnan käsittelykustannus (€)
+	sp_WSR = area * sp_tc1 * sp_wcost
+
+	# nettotulot (€)
+	sp_NU = -sp_WSR
+
+}

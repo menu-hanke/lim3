@@ -53,6 +53,9 @@ model site {
 	# forest haulage distance (m)
 	default'hdist = 500
 
+	# general traveling coefficient for silvicultural work
+	c_travel = 1 + call Lua ["metsi.harvest":"admi_ttra"] (area, hdist)
+
 }
 
 # ---- Tree-level attributes ---------------------------------------------------

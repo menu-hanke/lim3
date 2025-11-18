@@ -1,3 +1,74 @@
+# silvicultural costs (mela: SILVICULTURAL_COSTS)
+model site {
+
+	# 2. clearing of regeneration area (€/ha)
+	p_cregenarea = 157
+
+	# 3. harrowing and scarification for mineral soils (€/ha)
+	p_cscarif = 225
+
+	# 4. ploughing and mounding for peatlands and wet mineral soils (€/ha)
+	p_cmound = 328
+
+	# 5. seeds (€/ha)
+	p_cseed = 233
+
+	# 6-11. seedlings (€/seedling)
+	p_cseedling = call Table [
+		2, 1, 0.15
+		2, 2, 0.17
+		2, 3, 0.23
+		3, 1, 0.18
+		3, 2, 0.25
+		3, 3, 0.35
+	] (p_dtag, kspe3(p_dspecies), out)
+
+	# 12. prevention of grass (€/ha)
+	p_cruoh = 200
+
+	# 14. pruning (€/stem)
+	p_cprune = 1.2
+
+	# 15. fertilization (€/ha)
+	p_cfert = 296
+
+	# 16. forest drainage (€/ha)
+	p_cdrain = 182
+
+	# 17. ditch cleaning (€/ha)
+	p_cditchclean = 65
+
+	# 18. supplementary drainage (€/ha)
+	p_csupdrain = 65
+
+	# 19. silvicultural work (€/h)
+	p_cwork = 19.45
+
+	# 20. felling work (€/h)
+	p_cfell = 24.40
+
+}
+
+# time consumption of silvicultural work (h/ha)
+model site {
+
+	# fertilization
+	p_tfert = 48/60
+
+	# tending
+	p_ttend = 78/60
+
+	# pruninng
+	p_tprune = 78/60
+
+	# soil scarification
+	p_tscarif = 138/60
+
+	# regeneration
+	p_tregen = select(p_dtag=2, 78/60, 138/60)
+
+}
+
 # logging costs (mela: LOGGING_COSTS)
 model site {
 
@@ -113,5 +184,22 @@ model site {
 
 	# 15. is logging performed by a professional?
 	p_bprofe = true
+
+}
+
+# regeneration (mela: EVENT_CALL 4)
+model site {
+
+	# 1. regeneration method (1->seeding, 2->planting, 3->supplementary planting)
+	p_dtag = 2
+
+	# 4. cultivated tree species
+	p_dspecies = query.regeneration_species
+
+	# number of reference trees to generate
+	p_dcount = 5
+
+	# number of stems to cultivate (default->silvicultural guidelines)
+	p_dF = mh_cultivate_f
 
 }
