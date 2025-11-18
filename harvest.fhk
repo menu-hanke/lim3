@@ -17,6 +17,9 @@ model tree {
 # indeksit
 model site {
 
+	# hakattavat
+	h_cut = which(tree.w>0)
+
 	# ainespuuksi korjattavat
 	h_timber = which(tree.h_istimber)
 
@@ -262,6 +265,9 @@ model site {
 # ---- Keruumuuttujat ----------------------------------------------------------
 
 # aines- ja energiapuusummat
+macro var site h_sumC'{$expr where $filter} = area * sum(
+	tree._'{w*($expr)}[which(tree._'{w>0 and ($filter)})])
+macro var site h_sumC'{$expr where} = area * sum(tree._'{w*($expr)}[h_cut])
 macro var site h_sumT'{$expr where $filter} = area * sum(
 	tree._'{w*($expr)}[which(tree._'{h_istimber and ($filter)})])
 macro var site h_sumT'{$expr where} = area * sum(tree._'{w*($expr)}[h_timber])
@@ -278,15 +284,15 @@ macro var site h_RP'$filter   = h_sumT'{v_pulp where $filter}
 macro var site h_RC'$filter   = h_sumT'{v_saw+v_pulp where $filter}
 
 # energiapuukertymät (m^3)
-macro var site h_RE'$filter   = h_sumE'{h_ev_stem+h_ev_branch+h_ev_foliage+h_ev_stump+h_ev_roots
-	where $filter}
 macro var site h_REt'$filter  = h_sumE'{h_ev_stem+h_ev_branch+h_ev_foliage where $filter}
 macro var site h_RErw'$filter = h_sumE'{v_saw+v_pulp where $filter}
 macro var site h_REst'$filter = h_sumE'{h_ev_stem where $filter}
-macro var site h_REbr'$filter = h_sumE'{h_ev_branch where $filter}
-macro var site h_REfo'$filter = h_sumE'{h_ev_foliage where $filter}
-macro var site h_REsp'$filter = h_sumE'{h_ev_stump where $filter}
-macro var site h_REro'$filter = h_sumE'{h_ev_roots where $filter}
+macro var site h_REw'$filter  = h_sumC'{h_ev_branch+h_ev_foliage+h_ev_stump+h_ev_roots where $filter}
+macro var site h_REbr'$filter = h_sumC'{h_ev_branch where $filter}
+macro var site h_REfo'$filter = h_sumC'{h_ev_foliage where $filter}
+macro var site h_REsp'$filter = h_sumC'{h_ev_stump where $filter}
+macro var site h_REro'$filter = h_sumC'{h_ev_roots where $filter}
+macro var site h_RE'$filter   = h_REst'{$filter} + h_REw'{$filter}
 macro var site h_REcr'$filter = h_REbr'{$filter} + h_REfo'{$filter}
 macro var site h_REsr'$filter = h_REsp'{$filter} + h_REro'{$filter}
 
