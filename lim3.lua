@@ -35,4 +35,5 @@ return {
 	cutting      = op.cutting,
 	split        = op.split,
 	regeneration = op.regeneration,
+	soilprep     = op.soilprep
 }

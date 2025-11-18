@@ -426,6 +426,16 @@ local function regeneration(prototype, plantlevel)
 		return op
 end
 
+---- Soil preparation ----------------------------------------------------------
+
+local getsoilprep = lazy(function()
+	return data.transaction():update("site", prefixupdate("sp"))
+end)
+
+local function soilprep()
+	return wrap(getsoilprep())
+end
+
 --------------------------------------------------------------------------------
 
 local function setup(settings)
@@ -459,4 +469,5 @@ return {
 	cutting      = cutting,
 	split        = split,
 	regeneration = regeneration,
+	soilprep     = soilprep
 }
