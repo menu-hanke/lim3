@@ -45,8 +45,6 @@ model site {
 	dgdom = call Lua ["metsi.site":"dgdom"] (growing_storie, sdom, tree.storie, tree.s, tree.d, tree.f)
 }
 
-macro var site since'$expr = year - ($expr)
-
 # cost calculation
 model site {
 

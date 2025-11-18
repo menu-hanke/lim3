@@ -30,5 +30,10 @@ model site {
 
 }
 
+# ---- Time management ---------------------------------------------------------
 
+# time of last operation
+macro var site default'{when'$op} = 0
 
+# time since last operation
+macro var site since'$op = year - when'{$op}

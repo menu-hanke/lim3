@@ -12,13 +12,6 @@ model site {
 	pdr = false
 }
 
-model site {
-	default't_redrain = 0
-	default't_drain = 0
-	default't_thin = 0
-	default't_fert = 0
-}
-
 # TODO:
 model tree {
 	storie = 0
@@ -93,9 +86,9 @@ model tree where site.alr > ~alr'mineralsoil {
 		site.sty,
 		site.rimp,
 		site.pdr,
-		site.since't_redrain,
-		site.since't_drain,
-		site.since't_thin
+		site.since'redrain,
+		site.since'drain,
+		site.since'thin
 	) where s=~spe'pine and d>0
 
 	id5 = call Lua["metsi.id":"id5_suo_kuusi"] (
@@ -112,9 +105,9 @@ model tree where site.alr > ~alr'mineralsoil {
 		site.mal,
 		site.oji,
 		site.tkg,
-		site.since't_redrain,
-		site.since't_drain,
-		site.since't_thin
+		site.since'redrain,
+		site.since'drain,
+		site.since'thin
 	) where s=~spe'spruce and d>0
 
 	id5 = call Lua["metsi.id":"id5_suo_koivu"] (
@@ -131,10 +124,10 @@ model tree where site.alr > ~alr'mineralsoil {
 		site.mal,
 		site.oji,
 		site.tkg,
-		site.since't_redrain,
-		site.since't_drain,
-		site.since't_thin,
-		site.since't_fert
+		site.since'redrain,
+		site.since'drain,
+		site.since'thin,
+		site.since'fert
 	) where s!=~spe'pine and s!=~spe'spruce and d>0
 
 	ih5 = call Lua["metsi.ih":"ih5a_suo_manty"] (
@@ -154,7 +147,7 @@ model tree where site.alr > ~alr'mineralsoil {
 		site.oji,
 		site.ojik,
 		site.tkg,
-		site.since't_drain
+		site.since'drain
 	) where s=~spe'pine and d>0
 
 	ih5 = call Lua["metsi.ih":"ih5a_suo_kuusi"] (
@@ -172,8 +165,8 @@ model tree where site.alr > ~alr'mineralsoil {
 		site.mal,
 		site.oji,
 		site.tkg,
-		site.since't_redrain,
-		site.since't_drain,
+		site.since'redrain,
+		site.since'drain,
 		site.jh
 	) where s=~spe'spruce and d>0
 
@@ -195,10 +188,10 @@ model tree where site.alr > ~alr'mineralsoil {
 		site.mal,
 		site.oji,
 		site.tkg,
-		site.since't_redrain,
-		site.since't_drain,
-		site.since't_thin,
-		site.since't_fert
+		site.since'redrain,
+		site.since'drain,
+		site.since'thin,
+		site.since'fert
 	) where s!=~spe'pine and s!=~spe'spruce and d>0
 
 	sp5'comp = call Lua["metsi.death":"jsdeath"] (s, d+id5, rdfL2)
