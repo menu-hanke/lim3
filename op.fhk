@@ -23,7 +23,9 @@ model site {
 		kalr2(alr),
 		kmty4(mty),
 		kspe4(sdomx),
-		hdom: interpolate,
+		# XXX tämän pitäisi olla vallitsevan jakson keskipituus + 1.5, tämä ei ehkä mene ihan oikein
+		(hg'[mc<=1]+1.5) : interpolate,
+		# hdom: interpolate,
 		out,
 		out
 	)
