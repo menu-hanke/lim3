@@ -46,7 +46,7 @@ local function vol(spe, d, h)
 			ylat = biint(lat, id, ih)
 		end
 	end
-    return ytot, ytuk, ytot - ytuk - ylat, ylat
+    return ytot, ytuk, ylat
 end
 
 return {

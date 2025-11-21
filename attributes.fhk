@@ -110,17 +110,25 @@ macro var tree baL'$filter = sumL'(f*g where $filter)
 # volume and value
 model tree {
 
-	# volume (m^3)
-	v, v_saw, v_pulp, v_waste = call Lua ["metsi.vol":"vol"] (s, d, h)
+	# log volume reduction
+	vlr = call Lua ["metsi.tuv":"tuv"] (site.E_ykj, site.N_ykj, site.Z, site.mty, site.mal, site.alr,
+		site.dd, s, a13, d, snt)
 
-	# shape-based sawlog value adjustment
-	vadjs = call Table ["data/arsu.csv"] (kspe3(s), d: interpolate, h: interpolate, out)
+	# raw volume (m^3)
+	v, vl0, vw = call Lua ["metsi.vol":"vol"] (s, d, h)
+
+	# harvested volume (m^3)
+	vp = (v-vl0-vw) + vlr*vl0
+	vl = (1-vlr)*vl0
+
+	# shape-based log value adjustment
+	vls = call Table ["data/arsu.csv"] (kspe3(s), d: interpolate, h: interpolate, out)
 
 	# sawlog and pulpwood roadside value (€/m^3)
-	value1_saw, value1_pulp = call Table ["data/tvh.csv"] (s, out, out)
+	value1_log, value1_pulp = call Table ["data/tvh.csv"] (s, out, out)
 
 	# table-based value (€)
-	value_t = value1_saw*v_saw*vadjs + value1_pulp*v_pulp
+	value_t = value1_log*vl*vls + value1_pulp*vp
 
 	# optimization-based based maximum value (€)
 	value_cc = call Lua ["metsi.crosscut":"val"](s, d, h)

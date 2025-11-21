@@ -4,7 +4,7 @@
 model tree {
 
 	# korjataan ainespuuksi
-	h_istimber = w>0 and v_saw+v_pulp>0 and not p_isew
+	h_istimber = w>0 and vl+vp>0 and not p_isew
 
 	# korjataan energiapuuksi
 	h_isenergy = w>0 and p_isew
@@ -39,8 +39,8 @@ model tree {
 	h_eker = call Lua ["metsi.harvest":"eker"] (d, h, v)
 	h_ekerr = select(site.p_bewtag >= 4, h_eker, h_eker*p_ewresp)
 
-	h_ev_stem = h_eker * (v_saw+v_pulp) where p_isew
-	h_ev_stem = v - (v_saw+v_pulp)
+	h_ev_stem = h_eker * (vl+vp) where p_isew
+	h_ev_stem = v - (vl+vp)
 
 	h_ev_branchl = h_ekerr * p1_branches * bm_live_branches
 		where site.p_bewtag=1 or site.p_bewtag=3 or site.p_bewtag=4 or site.p_bewtag=5
@@ -85,7 +85,7 @@ model tree {
 	# rungon käsittelyaika manuaalisesti (h/runko)
 	h_tmanu = call Lua ["metsi.harvest":"tmanu"] (
 		s,
-		v_saw+v_pulp,
+		vl+vp,
 		0, # TODO: lumi
 		false, # TODO: mittaustapa (parametri, ks. lmdl)
 		select(site.p_bisrenew, "thinning", "clearcut"),
@@ -101,7 +101,7 @@ model tree {
 model site {
 
 	# poistuma (m^3/ha)
-	h_aRC = sum(tree._'{w*(v_saw+v_pulp)}[h_timber])
+	h_aRC = sum(tree._'{w*(vl+vp)}[h_timber])
 
 	# poistuma (runkoa/ha) [tntr]
 	h_aFC = sum(tree.w[h_timber])
@@ -113,8 +113,8 @@ model site {
 	h_thaul = call Lua ["metsi.harvest":"forhau"] (
 		tree.s[h_timber],
 		tree.w[h_timber],
-		tree.v_saw[h_timber],
-		tree.v_pulp[h_timber],
+		tree.vl[h_timber],
+		tree.vp[h_timber],
 		0,  # TODO: lumi (vaikuttaa vaan manuun)
 		hdist,
 		tc,
@@ -279,13 +279,13 @@ macro var site h_sumE'{$expr where} = area * sum(tree._'{w*($expr)}[h_energy])
 macro var site h_F'$filter    = area * sumT'{w where $filter}
 
 # ainespuukertymät (m^3)
-macro var site h_RL'$filter   = h_sumT'{v_saw where $filter}
-macro var site h_RP'$filter   = h_sumT'{v_pulp where $filter}
-macro var site h_RC'$filter   = h_sumT'{v_saw+v_pulp where $filter}
+macro var site h_RL'$filter   = h_sumT'{vl where $filter}
+macro var site h_RP'$filter   = h_sumT'{vp where $filter}
+macro var site h_RC'$filter   = h_sumT'{vl+vp where $filter}
 
 # energiapuukertymät (m^3)
 macro var site h_REt'$filter  = h_sumE'{h_ev_stem+h_ev_branch+h_ev_foliage where $filter}
-macro var site h_RErw'$filter = h_sumE'{v_saw+v_pulp where $filter}
+macro var site h_RErw'$filter = h_sumE'{vl+vp where $filter}
 macro var site h_REst'$filter = h_sumE'{h_ev_stem where $filter}
 macro var site h_REw'$filter  = h_sumC'{h_ev_branch+h_ev_foliage+h_ev_stump+h_ev_roots where $filter}
 macro var site h_REbr'$filter = h_sumC'{h_ev_branch where $filter}
