@@ -357,17 +357,12 @@ local getcut = lazy(function()
 			f = "f - w",
 			w = 0
 		})
+		:delete("tree", "f-w<0.1")
 end)
 
 local function cutting(...)
-	local cut
-	if select("#", ...) > 0 then
-		cut = {...}
-		table.insert(cut, getcut())
-		cut = control.all(cut)
-	else
-		cut = getcut()
-	end
+	local cut = {...}
+	table.insert(cut, getcut())
 	return wrap(cut)
 end
 
@@ -466,6 +461,7 @@ return {
 	np           = np,
 	wrap         = wrap,
 	selector     = selector,
+	getcut       = getcut,
 	cutting      = cutting,
 	split        = split,
 	regeneration = regeneration,
