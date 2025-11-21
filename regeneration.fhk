@@ -19,6 +19,9 @@ model site {
 	# viljeltävien puiden määrä
 	mh_cultivate_f = rlv_f(p_dspecies)
 
+	# taimikon uudistamistaraja
+	mh_young_stand_fmin = select(mty>=5, 500, 600)
+
 }
 
 # ---- Oletusarvot uusille puille ----------------------------------------------
