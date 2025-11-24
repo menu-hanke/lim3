@@ -2,7 +2,7 @@ local op = require "lim3_op"
 local np = op.np
 
 local periods = {}
-local report_node, report_leaf
+local report_node, report_tail
 
 ---- Main loop -----------------------------------------------------------------
 
@@ -10,16 +10,25 @@ local period = data.cdata { ctype="int16_t", init=1 }
 local prevnode = data.cdata { ctype="int32_t" }
 local getstate = data.transaction():read(period, "site.year")
 local setperiod = data.transaction():write(period)
+local getstopcond
 
 local node = 0
-local driver, step
+local driver, step, steptail
+
+local function getnodeid()
+	return control.worker()*2^24 + node
+end
 
 driver = control.dynamic(function()
 	local period, year = getstate()
 	local nextyear = periods[period]
 	if not nextyear then
-		if report_leaf then
-			report_leaf(control.worker()*2^24 + node)
+		if report_tail then
+			if not getstopcond() then
+				np(5)
+				return steptail
+			end
+			report_tail()
 		end
 		return control.nothing
 	elseif year < nextyear then
@@ -28,7 +37,7 @@ driver = control.dynamic(function()
 	else
 		if report_node then
 			node = node+1
-			report_node(control.worker()*2^24 + node)
+			report_node()
 		end
 		setperiod(period+1)
 		return driver
@@ -40,7 +49,7 @@ end)
 local function console_node(period, node)
 	print(string.format("%s[%s] %s",
 		string.rep("\t", period-1),
-		periods[period] or "LEAF",
+		periods[period] or "TAIL",
 		pretty(node)
 	))
 end
@@ -86,60 +95,80 @@ end
 
 --------------------------------------------------------------------------------
 
+local function makereport(tx, data, settings, extra)
+	if settings.output == false then
+		return
+	end
+	local tables = {}
+	for k,v in pairs(data) do
+		if type(k) == "string" then
+			tables[k] = v
+		end
+	end
+	if settings.output == "console" then
+		tx:call(console_node, period, tables)
+	else
+		for tab,cols in pairs(tables) do
+			local rep = {}
+			if extra then
+				for k,v in pairs(extra) do
+					rep[k] = v
+				end
+			end
+			for k,v in pairs(cols) do
+				rep[k] = v
+			end
+			tx:sql_insert(tab, rep)
+		end
+	end
+end
+
 local function setup(settings)
-	step = control.all { settings.events or control.nothing, driver }
+	local events = settings.events or control.nothing
+	step = control.all { events, driver }
 	control.simulate = step
 	if settings.nodes then
-		local tables = {}
 		for k,v in pairs(settings.nodes) do
 			if type(k) == "number" then
 				periods[k] = v
-			else
-				tables[k] = v
 			end
 		end
 		report_node = data.transaction()
-		if settings.output == "console" then
-			report_node:call(console_node, period, tables)
-		elseif settings.output ~= false then
-			report_node:set(prevnode, data.arg(1))
-			for tab,fs in pairs(tables) do
-				local rep = { id = data.arg(1), parent = prevnode }
-				for k,v in pairs(fs) do rep[k] = v end
-				report_node:sql_insert(tab, rep)
-			end
+		if settings.output and settings.output ~= "console" then
+			report_node:set(prevnode, getnodeid)
 		end
+		makereport(report_node, settings.nodes, settings, { id=getnodeid, parent=prevnode })
 	end
-	if settings.leaves or settings.trace then
-		report_leaf = data.transaction()
-		if settings.leaves then
-			if settings.leaves[1] and (not periods[1] or settings.leaves[1] > periods[#periods]) then
-				table.insert(periods, settings.leaves[1])
-			end
-			local tables = {}
-			for k,v in pairs(settings.leaves) do
-				if type(k) == "string" then
-					tables[k] = v
+	if settings.tail or settings.trace then
+		report_tail = data.transaction()
+		if settings.tail then
+			if settings.tail[1] then
+				if type(settings.tail[1]) == "string" then
+					getstopcond = data.transaction():read(settings.tail[1])
+				else
+					getstopcond = settings.tail[1]
 				end
+				steptail = control.all { control.single(events), driver }
 			end
-			if settings.output == "console" then
-				report_leaf:call(console_node, period, tables)
-			elseif settings.output ~= false then
-				for tab,fs in pairs(tables) do
-					local rep = {}
-					if settings.nodes then rep.parent = data.arg(1) end
-					for k,v in pairs(fs) do rep[k] = v end
-					report_leaf:sql_insert(tab, rep)
-				end
-			end
+			local extra = {}
+			if settings.nodes then extra.id = getnodeid end
+			makereport(report_tail, settings.tail, settings, extra)
 		end
 		if settings.trace then
-			report_leaf:call(trace_dump)
+			report_tail:call(trace_dump)
 			traceon()
+		end
+		if not getstopcond then
+			getstopcond = function() return true end
 		end
 	end
 	if not settings.trace then
 		traceoff()
+	end
+	if settings.cuttings then
+		local extra = {}
+		if settings.nodes then extra.id = getnodeid end
+		makereport(op.getcut(), settings.cuttings, settings, extra)
 	end
 end
 
