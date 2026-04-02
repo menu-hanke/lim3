@@ -7,7 +7,8 @@ local report_node, report_tail
 ---- Main loop -----------------------------------------------------------------
 
 local period = data.cdata { ctype="int16_t", init=1 }
-local prevnode = data.cdata { ctype="int32_t" }
+-- node id is a double to avoid boxed int64 cdata, but get more range than int32
+local prevnode = data.cdata { ctype="double" }
 local getstate = data.transaction():read(period, "site.year")
 local setperiod = data.transaction():write(period)
 local getstopcond
@@ -16,7 +17,7 @@ local node = 0
 local driver, step, steptail
 
 local function getnodeid()
-	return control.worker()*2^24 + node
+	return control.worker()*2^32 + node
 end
 
 driver = control.dynamic(function()

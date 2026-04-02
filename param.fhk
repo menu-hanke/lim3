@@ -69,27 +69,37 @@ model site {
 
 }
 
-# logging costs (mela: LOGGING_COSTS)
+# logging costs (MELA defaults)
+#model site {
+#
+#	# 1. manual felling (€/hour)
+#	p_chmanu = 24.40
+#
+#	# 2. mechanized felling (€/hour)
+#	p_chmoto = 92.0
+#
+#	# 3. forest haulage (€/hour)
+#	p_chhaul = 65.0
+#
+#	# 4. supervision (€/hour)
+#	p_chadmi = 19.45
+#
+#	# 5. organization costs (€/m^2)
+#	p_chorg = 0
+#
+#	# 6. machine transfer costs (€/stand)
+#	p_chmachine = 0
+#
+#}
+
+# logging costs (updated to 2021)
 model site {
-
-	# 1. manual felling (€/hour)
-	p_chmanu = 24.40
-
-	# 2. mechanized felling (€/hour)
-	p_chmoto = 92.0
-
-	# 3. forest haulage (€/hour)
-	p_chhaul = 65.0
-
-	# 4. supervision (€/hour)
-	p_chadmi = 19.45
-
-	# 5. organization costs (€/m^2)
+	p_chmanu = 29.80
+	p_chmoto = 103.20
+	p_chhaul = 81.50
+	p_chadmi = 22.40
 	p_chorg = 0
-
-	# 6. machine transfer costs (€/stand)
 	p_chmachine = 0
-
 }
 
 # energywood logging costs (mela: ENERGYWOOD_LOGGING_COSTS)
@@ -139,6 +149,28 @@ model site {
 
 }
 
+# energywood prices (mela: ENERGYWOOD_PRICES)
+model site {
+
+	# 1. energy wood residue stumpage price (€/m^3)
+	p_ewsp_resid = 3.80
+
+	# 2. energy roundwood stumpage price (€/m^3)
+	p_ewsp_roundwood = 4.50
+
+	# 3. energy wood stump and root stumpage price (€/m^3)
+	p_ewsp_stumproot = 1.90
+
+	# 4. energy wood residue roadside price (€/m^3)
+	p_ewrs_resid = 46.80
+
+	# 5. energy roundwood roadside price (€/m^3)
+	p_ewrs_roundwood = 46.80
+
+	# 6. energy wood stump and root roadside price (€/m^3)
+	p_ewrs_stumproot = 46.80
+}
+
 # energywood selection (mela: ENERGYWOOD_LOGGING)
 model tree {
 
@@ -150,7 +182,7 @@ model tree {
 		and any(d <= p_ewdmax, all(s>=6, s!=8), site.p_bewtag>=7)
 
 	p_ewkdmin = 25/1.33
-	p_isewk = any(site.p_bewtag=1, site.p_bewtag=3) and d >= p_ewkdmin
+	p_isewk = any(site.p_bewtag=2, site.p_bewtag=3) and d >= p_ewkdmin
 
 	# 27. proportion of logging residue collected as energy wood
 	p_ewresp = 0.7
@@ -163,7 +195,8 @@ model site {
 	p_ewstumpp = 0.85
 
 	# 29. logging residue harvesting method (0-3, see MELA2016 pp. 105-106)
-	p_ewresm = 0
+	# p_ewresm = 0
+	p_ewresm = 1
 
 }
 

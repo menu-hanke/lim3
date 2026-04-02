@@ -216,13 +216,6 @@ local function select_odds_profile(w, s, k, y, z, N, Z, ZZ)
 end
 
 -- (non-ffi) temporary work arrays to avoid allocations:
--- local work1 = {}
--- local work2 = {}
--- local work3 = {}
--- local work4 = {}
--- local work5 = {}
--- local work6 = {}
-
 local work_zz = {}
 local work_zi = {}
 local work_zp = {}
@@ -231,6 +224,17 @@ local work_s = {}
 local work_x = {}
 local work_xx = {}
 local work_yy = {}
+
+-- TODO: more general constraint-based API:
+--  * one frequency variable `f`
+--  * one output variable `w`
+--  * zero to one priority functions
+--  * N >= 0 upper bound constraints:
+--      dot(w,z) <= Z  (z=constraint var, Z=upper bound)
+--  * retain constraints:
+--      dot(f-w,z) >= Z  <=>  dot(w,z) <= dot(f,z) - Z
+--  * output max w subject to constraints and priority
+--  * use min{Z-dot(w,z) : (z,Z)} for search
 
 -- add more trees to selection.
 -- inputs:

@@ -6,7 +6,7 @@ model tree {
 	# korjataan ainespuuksi
 	h_istimber = w>0 and vl+vp>0 and not p_isew
 
-	# korjataan energiapuuksi
+	# korjataan (kokonaan) energiapuuksi
 	h_isenergy = w>0 and p_isew
 
 	# korjataan kanto
@@ -22,9 +22,6 @@ model site {
 
 	# ainespuuksi korjattavat
 	h_timber = which(tree.h_istimber)
-
-	# energiapuuksi korjattavat
-	h_energy = which(tree.h_isenergy)
 
 	# kannot
 	h_enek = which(tree.h_isstump)
@@ -79,7 +76,7 @@ model tree {
 	h_tmoto = call Lua ["metsi.harvest":"moto_ptime"] (
 		s,
 		v,
-		select(site.p_bisrenew, "thinning", "clearcut")
+		select(site.p_bisrenew, "clearcut", "thinning")
 	)
 	
 	# rungon käsittelyaika manuaalisesti (h/runko)
@@ -88,7 +85,7 @@ model tree {
 		vl+vp,
 		0, # TODO: lumi
 		false, # TODO: mittaustapa (parametri, ks. lmdl)
-		select(site.p_bisrenew, "thinning", "clearcut"),
+		select(site.p_bisrenew, "clearcut", "thinning"),
 		false # TODO: ensiharvennus-dummy.
 	)
 
@@ -107,6 +104,7 @@ model site {
 	h_aFC = sum(tree.w[h_timber])
 
 	# ainespuun osuus kokonaispoistumasta [a_osuus]
+	h_relvt = 1 where p_bewtag=0
 	h_relvt = select(h_aRC+h_aRE>0, h_aRC/(h_aRC+h_aRE), 0)
 
 	# metsäkuljetuksen ajanmenekki [thau] (h/ha)
@@ -118,7 +116,7 @@ model site {
 		0,  # TODO: lumi (vaikuttaa vaan manuun)
 		hdist,
 		tc,
-		select(p_bisrenew, "thinning", "clearcut"),
+		select(p_bisrenew, "clearcut", "thinning"),
 		select(p_bprofe, "forwarder", "farmtractor")
 	)
 
@@ -128,7 +126,7 @@ model site {
 
 	# moton kokonaissiirtymisaika (h/ha)
 	h_tmotozz = call Lua ["metsi.harvest":"moto_zz"] (h_aFC,
-		select(p_bisrenew, "thinning", "clearcut"))
+		select(p_bisrenew, "clearcut", "thinning"))
 
 	# koneellisen hakkuun ajanmenekki (h/ha) [tmot]
 	h_tmoto = h_tmotozz + sum(tree._'{w*h_tmoto}[h_timber])
@@ -151,7 +149,7 @@ model site {
 	# suunnittelu- ja valvontakustannukset (h/ha) [tc]
 	# jos manuhakkuu ilman energiapuukertymää niin pinomittaus, muuten aina konemittaus
 	h_tadmi = call Lua ["metsi.harvest":"admi_t1"] (area, hdist, h_RL, h_RP, p_bisrenew, true)
-		where h_bcme=2 and h_aRE=0
+		where h_bcme=2 and p_bewtag>0 and h_aRE=0
 	h_tadmi = call Lua ["metsi.harvest":"admi_t5"] (area, hdist, h_RC+h_RE, false, p_bisrenew)
 
 	# suunnittelu- ja valvontakustannukset (€/ha)
@@ -170,14 +168,23 @@ model site {
 # energiapuu
 model site {
 
-	# poistuma (m^3/ha)
-	h_aRE     = sum(tree._'{w*(h_ev_stem+h_ev_branch+h_ev_foliage+h_ev_stump+h_ev_roots)}[h_energy])
-	h_aREt    = sum(tree._'{w*(h_ev_stem+h_ev_branch+h_ev_foliage)}[h_energy])
-	h_aREst   = sum(tree._'{w*h_ev_stem}[h_energy])
-	h_aREspro = sum(tree._'{w*(h_ev_stump+h_ev_roots)}[h_energy])
+	# runko (m^3/ha) [pev(1)+pev(2)+pev(3)]
+	h_aREst   = sum(tree._'{w*h_ev_stem}[h_cut])
 
-	# poistuma (runkoa/ha) [entr]
-	h_aFE     = sum(tree.w[h_energy])
+	# oksat+lehvästö (m^3/ha) [pef(1)+pef(2)+pef(3)]
+	h_aREbrfo = sum(tree._'{w*(h_ev_branch+h_ev_foliage)}[h_cut])
+
+	# kanto+juuret (m^3/ha) [estu=per(1)+per(2)+per(3)]
+	h_aREspro = sum(tree._'{w*(h_ev_stump+h_ev_roots)}[h_cut])
+
+	# runko+oksat+lehvästö (m^3/ha) [pet(1)+pet(2)+pet(3)]
+	h_aREt    = h_aREst + h_aREbrfo
+
+	# kokonaispoistuma (m^3/ha) [enetot]
+	h_aRE     = h_aREt + h_aREspro
+
+	# rungot (runkoa/ha) [entr]
+	h_aFE     = sumT'{w where h_isenergy and h_ev_stem>0}
 
 	# nostettavien kantojen määrä (1/ha) [enst]
 	h_aFEsp   = sum(tree.w[h_enek])
@@ -200,9 +207,10 @@ model site {
 
 	# energiapuun korjuu koko- tai osapuuna
 	h_tene1l, h_tene1h, h_cene1l, h_cene1h = call Lua ["metsi.harvest":"ew_tc123t"] (
-		tree.s[h_energy],
-		tree.w[h_energy],
-		tree._'{h_ev_stem+h_ev_branch+h_ev_foliage}[h_energy],
+		tree.s[h_cut],
+		tree.w[h_cut],
+		tree._'{h_ev_stem+h_ev_branch+h_ev_foliage}[h_cut],
+		tree._'{h_isenergy and h_ev_stem>0}[h_cut],
 		hdist,
 		p_bewtag=5 or p_bewtag=8,
 		p_ceharv,
@@ -228,6 +236,7 @@ model site {
 	)
 
 	# kannonnoston kokonaissiirtymisaika (h/ha)
+	h_tstmove = 0 where h_aFEsp=0
 	h_tstmove = call Lua ["metsi.harvest":"stump_tmove"] (p_ewstumpp * h_aFEsp)
 
 	# kantojen kokonaisnostoaika (h/ha)
@@ -268,12 +277,16 @@ model site {
 macro var site h_sumC'{$expr where $filter} = area * sum(
 	tree._'{w*($expr)}[which(tree._'{w>0 and ($filter)})])
 macro var site h_sumC'{$expr where} = area * sum(tree._'{w*($expr)}[h_cut])
+macro var site h_sumCE'$args {
+	model site $$ = 0 where p_bewtag=0
+	model site $$ = h_sumC'{$args}
+}
 macro var site h_sumT'{$expr where $filter} = area * sum(
 	tree._'{w*($expr)}[which(tree._'{h_istimber and ($filter)})])
 macro var site h_sumT'{$expr where} = area * sum(tree._'{w*($expr)}[h_timber])
 macro var site h_sumE'{$expr where $filter} = area * sum(
 	tree._'{w*($expr)}[which(tree._'{h_isenergy and ($filter)})])
-macro var site h_sumE'{$expr where} = area * sum(tree._'{w*($expr)}[h_energy])
+macro var site h_sumE'{$expr where} = area * sum(tree._'{w*($expr)}[which(tree.h_isenergy)])
 
 # kokonaispoistuma
 macro var site h_F'$filter    = area * sumT'{w where $filter}
@@ -284,14 +297,14 @@ macro var site h_RP'$filter   = h_sumT'{vp where $filter}
 macro var site h_RC'$filter   = h_sumT'{vl+vp where $filter}
 
 # energiapuukertymät (m^3)
-macro var site h_REt'$filter  = h_sumE'{h_ev_stem+h_ev_branch+h_ev_foliage where $filter}
 macro var site h_RErw'$filter = h_sumE'{vl+vp where $filter}
-macro var site h_REst'$filter = h_sumE'{h_ev_stem where $filter}
-macro var site h_REw'$filter  = h_sumC'{h_ev_branch+h_ev_foliage+h_ev_stump+h_ev_roots where $filter}
-macro var site h_REbr'$filter = h_sumC'{h_ev_branch where $filter}
-macro var site h_REfo'$filter = h_sumC'{h_ev_foliage where $filter}
-macro var site h_REsp'$filter = h_sumC'{h_ev_stump where $filter}
-macro var site h_REro'$filter = h_sumC'{h_ev_roots where $filter}
+macro var site h_REt'$filter  = h_sumCE'{h_ev_stem+h_ev_branch+h_ev_foliage where $filter}
+macro var site h_REst'$filter = h_sumCE'{h_ev_stem where $filter}
+macro var site h_REw'$filter  = h_sumCE'{h_ev_branch+h_ev_foliage+h_ev_stump+h_ev_roots where $filter}
+macro var site h_REbr'$filter = h_sumCE'{h_ev_branch where $filter}
+macro var site h_REfo'$filter = h_sumCE'{h_ev_foliage where $filter}
+macro var site h_REsp'$filter = h_sumCE'{h_ev_stump where $filter}
+macro var site h_REro'$filter = h_sumCE'{h_ev_roots where $filter}
 macro var site h_RE'$filter   = h_REst'{$filter} + h_REw'{$filter}
 macro var site h_REcr'$filter = h_REbr'{$filter} + h_REfo'{$filter}
 macro var site h_REsr'$filter = h_REsp'{$filter} + h_REro'{$filter}
@@ -300,12 +313,20 @@ macro var site h_REsr'$filter = h_REsp'{$filter} + h_REro'{$filter}
 model site h_WC = area * (h_cmoto + h_chaul + h_cadmi + h_corg)
 
 # energiapuun korjuukustannukset (€)
-model site h_WEc = 0 where len(h_energy) = 0
+model site h_WEc = 0 where p_bewtag=0
 model site h_WEc = area * (h_cene1 + h_cene2 + h_cene3 + h_cene4 + h_ceadmi + h_ceorg)
 
+# bruttotulot tienvarsihinnoin ainespuu (€)
+model site h_RU = area * sum(tree.w * tree.value_t)
+
+# bruttotulot tienvarsihinnoin energiapuu (€)
+model site h_EU = select(p_bewtag>=4, p_ewrs_roundwood, p_ewrs_resid) * h_REst
+	+ p_ewrs_resid * h_REcr
+	+ p_ewrs_stumproot * h_REsr
+
 # bruttotulot tienvarsihinnoin (€)
-# TODO: tästä puuttuu hakkuuhävikki (apu) ja energiatulot (esumt)
-model site h_U = area * sum(tree.f * tree.value_t)
+# TODO: tästä puuttuu hakkuuhävikki (apu)
+model site h_U = h_RU + h_EU
 
 # nettotulot tienvarsihinnoin (€)
 # TODO: melan kaava NU = U - WC - WE - apu_cae,

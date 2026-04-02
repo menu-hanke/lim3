@@ -339,6 +339,9 @@ local function selector(settings)
 	return selector_cache[settings]
 end
 
+-- TODO: selector should (by default) return false when nothing was selected
+-- (add epsilon parameter, negative epsilon allows empty selection)
+
 ---- Cutting -------------------------------------------------------------------
 
 local function prefixupdate(prefix)
